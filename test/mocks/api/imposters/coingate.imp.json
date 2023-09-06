@@ -1,0 +1,15 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "endpoint": "/coingate/v2/rates/merchant/BTC/USD"
+    },
+    "response": {
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "29295.929694597355"
+    }
+  }
+]

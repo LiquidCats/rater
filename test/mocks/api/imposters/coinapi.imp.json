@@ -1,0 +1,15 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "endpoint": "/coinapi/v1/exchangerate/BTC/USD"
+    },
+    "response": {
+      "status": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": "{\"time\":\"2023-07-24T11:31:56.0000000Z\",\"asset_id_base\":\"BTC\",\"asset_id_quote\":\"USD\",\"rate\":29295.929694597355}"
+    }
+  }
+]

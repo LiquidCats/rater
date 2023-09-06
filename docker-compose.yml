@@ -1,0 +1,72 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      dockerfile: Dockerfile
+    restart: on-failure
+    cpu_count: 1
+    mem_reservation: 64M
+    depends_on:
+      - cache
+      - mocks
+    env_file: .env
+    networks:
+      - liquid
+    ports:
+      - "8080:8080"
+
+  dev:
+    image: golang:latest
+    working_dir: /app
+    entrypoint: "go run /app/cmd/rater/main.go"
+    networks:
+      - liquid
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mocks
+      - cache
+    env_file: .env
+    volumes:
+      - ~/.go:/root/go:ro
+      - ./:/app:rw
+
+  tests:
+    image: golang:latest
+    working_dir: /app
+    command: "go test -vet=off -v -race ./..."
+    networks:
+      - liquid
+    environment:
+      GOPATH: "/root/go"
+    depends_on:
+      - mocks
+      - cache
+      - dev
+    volumes:
+      - ~/.go:/root/go:ro
+      - ./:/app:rw
+
+  mocks:
+    image: friendsofgo/killgrave:latest
+    working_dir: /app
+    restart: on-failure
+    entrypoint: "/go/bin/killgrave --config /app/configs.yml"
+    networks:
+      - liquid
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./test/mocks/api:/app:ro
+
+  cache:
+    image: redis:alpine
+    networks:
+      - liquid
+    ports:
+      - "6379:6379"
+
+networks:
+  liquid:
+    external: true

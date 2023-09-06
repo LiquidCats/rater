@@ -1,0 +1,12 @@
+imposters_path: "imposters"
+port: 3001
+host: "0.0.0.0"
+cors:
+  methods: ["GET"]
+  headers: ["Content-Type"]
+  exposed_headers: ["Cache-Control"]
+  origins: ["*"]
+  allow_credentials: true
+
+watcher: true
+secure: false
