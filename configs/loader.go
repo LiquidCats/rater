@@ -19,9 +19,6 @@ func Load() Config {
 		Port:            os.Getenv("RATER_PORT"),
 		QuoteCurrencies: quoteCurrencies,
 		BaseCurrencies:  baseCurrencies,
-		CoinGateUrl:     os.Getenv("RATER_COINGATE_URL"),
-		CoinApiUrl:      os.Getenv("RATER_COINAPI_URL"),
-		CoinApiSecret:   os.Getenv("RATER_COINAPI_SECRET"),
 		Redis: RedisConfig{
 			Address:  os.Getenv("RATER_REDIS_ADDRESS"),
 			Password: os.Getenv("RATER_REDIS_PASSWORD"),

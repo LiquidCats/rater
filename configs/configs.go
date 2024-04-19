@@ -1,12 +1,9 @@
 package configs
 
 type Config struct {
-	Port            string
+	Port            string `default:"8080"`
 	BaseCurrencies  []string
 	QuoteCurrencies []string
-	CoinGateUrl     string
-	CoinApiUrl      string
-	CoinApiSecret   string
 	Redis           RedisConfig
 }
 
