@@ -3,21 +3,29 @@ package e2e
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/redis/go-redis/v9"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"os"
 	"rater/internal/adapter/api/dto"
+	"rater/internal/adapter/api/middlware"
+	"rater/internal/adapter/api/routes"
+	"rater/internal/adapter/logger"
+	"rater/internal/adapter/repository/api/coinapi"
+	"rater/internal/adapter/repository/cache/memory"
+	"rater/internal/app/usecase"
+	"rater/internal/port"
 	"testing"
 	"time"
 )
 
 var quote = "USD"
 var base = "BTC"
-var host = fmt.Sprintf("http://dev:8080/v1/rate/%s/%s", base, quote)
-var key = fmt.Sprintf("rater:rate:base:%s:quote:%s", base, quote)
+var uri = fmt.Sprintf("/v1/rate/%s/%s", base, quote)
+var key = fmt.Sprintf("rate:base:%s:quote:%s", base, quote)
 
 type response struct {
 	Data struct {
@@ -28,8 +36,36 @@ type response struct {
 	Status string `json:"status"`
 }
 
-func getRate(ctx context.Context) (*response, error) {
-	req, err := http.NewRequest(http.MethodGet, host, nil)
+func makeApp() (*gin.Engine, port.CacheRepository) {
+	log := logger.NewNilLogger()
+
+	cache := memory.NewCacheRepository()
+
+	rateUsecase := usecase.NewRateUsecase(log, cache)
+
+	rateUsecase.SetAdapter(coinapi.NewRepository())
+
+	rateHandler := routes.NewRateHandler(rateUsecase)
+
+	baseCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("base", []string{base})
+	quoteCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("quote", []string{quote})
+
+	router := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+
+	v1Router := router.Group("/v1")
+	v1Router.GET(
+		"/rate/:base/:quote",
+		baseCurrencyMiddleware.Handle,
+		quoteCurrencyMiddleware.Handle,
+		rateHandler.GetRate,
+	)
+
+	return router, cache
+}
+
+func requestRate(ctx context.Context, url string) (*response, error) {
+	req, err := http.NewRequest(http.MethodGet, url+uri, nil)
 	if nil != err {
 		return nil, err
 	}
@@ -56,23 +92,34 @@ func getRate(ctx context.Context) (*response, error) {
 }
 
 func TestGetRate(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"time":"2023-07-24T11:31:56.0000000Z","asset_id_base":"BTC","asset_id_quote":"USD","rate":29295.929694597355}`))
+	}))
+	defer api.Close()
+
+	err := os.Setenv("RATER_COINAPI_URL", api.URL)
+	require.NoError(t, err)
+
+	router, cache := makeApp()
+
+	server := httptest.NewServer(router)
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "cache:6379",
-		DB:   0,
-	})
-
-	redisClient.FlushAll(ctx)
-
 	t.Run("first run", func(t *testing.T) {
+		if cache.Has(ctx, key) {
+			require.Failf(t, "cache should not exist", "cache key: %s", key)
+		}
 
-		rateResponse, err := getRate(ctx)
+		rateResponse, err := requestRate(ctx, server.URL)
 		require.NoError(t, err)
 
-		if err := redisClient.Exists(ctx, key).Err(); !errors.Is(err, redis.Nil) {
-			require.NoError(t, err)
+		if !cache.Has(ctx, key) {
+			require.Failf(t, "cache should exist", "cache key: %s", key)
 		}
 
 		require.Equal(t, dto.StatusSuccess, rateResponse.Status)
@@ -82,11 +129,11 @@ func TestGetRate(t *testing.T) {
 	})
 
 	t.Run("cached", func(t *testing.T) {
-		if err := redisClient.Exists(ctx, key).Err(); !errors.Is(err, redis.Nil) {
-			require.NoError(t, err)
+		if !cache.Has(ctx, key) {
+			require.Failf(t, "cache should exist", "cache key: %s", key)
 		}
 
-		rateResponse, err := getRate(ctx)
+		rateResponse, err := requestRate(ctx, server.URL)
 		require.NoError(t, err)
 
 		require.Equal(t, dto.StatusSuccess, rateResponse.Status)
