@@ -2,22 +2,21 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"net/http"
 	"os"
 	"os/signal"
 	"rater/configs"
 	"rater/internal/adapter/api/middlware"
 	"rater/internal/adapter/api/routes"
 	"rater/internal/adapter/logger"
-	"rater/internal/adapter/repository/api"
-	"rater/internal/adapter/repository/redis"
+	"rater/internal/adapter/repository/api/cex"
+	"rater/internal/adapter/repository/api/coinapi"
+	"rater/internal/adapter/repository/api/coingate"
+	"rater/internal/adapter/repository/cache/redis"
+	httpserver "rater/internal/adapter/server"
 	"rater/internal/app/usecase"
 	"syscall"
-	"time"
 )
 
 const app = "rater"
@@ -31,12 +30,16 @@ func main() {
 	}
 	defer log.Sync()
 
-	cache := redis.NewCacheRepository(cfg.Redis, app)
+	cache, err := redis.NewCacheRepository(cfg.Redis, app)
+	if nil != err {
+		log.Fatal("app: cant connect to cache", zap.Error(err))
+	}
 
 	rateUsecase := usecase.NewRateUsecase(log, cache)
 
-	rateUsecase.SetAdapter(api.NewCoinApiRepository(cfg.CoinApiUrl, cfg.CoinApiSecret))
-	rateUsecase.SetAdapter(api.NewCoinGateRepository(cfg.CoinGateUrl))
+	rateUsecase.SetAdapter(coinapi.NewRepository())
+	rateUsecase.SetAdapter(coingate.NewRepository())
+	rateUsecase.SetAdapter(cex.NewRepository())
 
 	rootHandler := routes.NewRootHandler()
 	rateHandler := routes.NewRateHandler(rateUsecase)
@@ -44,7 +47,7 @@ func main() {
 	baseCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("base", cfg.BaseCurrencies)
 	quoteCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("quote", cfg.QuoteCurrencies)
 
-	router := gin.Default()
+	router := httpserver.NewRouter(log)
 
 	router.Any("/", rootHandler.GetRoot)
 
@@ -57,32 +60,21 @@ func main() {
 		rateHandler.GetRate,
 	)
 
-	server := &http.Server{
-		Addr:           fmt.Sprintf(":%s", cfg.Port),
-		Handler:        router,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
+	server := httpserver.NewServer(cfg, router, log)
 
-	go func(log *logger.ZapLogger, server *http.Server) {
-		if err := server.ListenAndServe(); nil != err && !errors.Is(err, http.ErrServerClosed) {
-			log.Error("cant start server", zap.Error(err))
-		}
-	}(log, server)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go server.Start(ctx)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
 
-	log.Info("Shutting down server...")
-
-	// Create a context with a timeout for our server's graceful shutdown.
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		log.Info("server shutdown failed", zap.Error(err))
+	select {
+	case <-quit:
+		server.Stop(ctx)
+	case <-ctx.Done():
+		log.Info("app: shutting down server...", zap.Error(ctx.Err()))
 	}
 
 	log.Info("Done")

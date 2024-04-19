@@ -47,9 +47,10 @@ func (e *RateUsecase) GetRate(ctx context.Context, quote, base string) (*entity.
 
 	if nil != price {
 		return &entity.Rate{
-			Base:  base,
-			Quote: quote,
-			Price: price,
+			Base:     base,
+			Quote:    quote,
+			Price:    price,
+			Provider: "cache",
 		}, nil
 	}
 
