@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"rater/internal/adapter/api/dto"
-	"rater/utils/sliceutils"
+	"rater/pkg/utils/sliceutils"
 	"strings"
 )
 
