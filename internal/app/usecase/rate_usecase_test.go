@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"rater/configs"
 	"rater/internal/adapter/logger"
-	"rater/internal/adapter/repository/redis"
+	"rater/internal/adapter/repository/cache/redis"
 	"testing"
 )
 
