@@ -1,4 +1,4 @@
-package api
+package coingate
 
 import (
 	"context"
@@ -6,32 +6,37 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"os"
 	"strings"
 )
 
-type CoinGateRepository struct {
+type Repository struct {
 	url string
 }
 
-func NewCoinGateRepository(url string) *CoinGateRepository {
-	return &CoinGateRepository{url: url}
+func NewRepository() *Repository {
+	url := os.Getenv("RATER_COINGATE_URL")
+
+	return &Repository{url: url}
 }
 
-func (c *CoinGateRepository) Get(ctx context.Context, quote, base string) (*big.Float, error) {
+func (c *Repository) Get(ctx context.Context, quote, base string) (*big.Float, error) {
 	url := fmt.Sprintf("%s/%s/%s", c.url, strings.ToUpper(base), strings.ToUpper(quote))
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("repo: could not create request: %s\n", err)
 	}
-
-	req.WithContext(ctx)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("repo: error making api request: %s\n", err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+		}
+	}(res.Body)
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -46,6 +51,6 @@ func (c *CoinGateRepository) Get(ctx context.Context, quote, base string) (*big.
 	return v, nil
 }
 
-func (c *CoinGateRepository) Name() string {
-	return "coindate"
+func (c *Repository) Name() string {
+	return "coingate"
 }
