@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
@@ -16,14 +17,15 @@ import (
 	"rater/internal/adapter/logger"
 	"rater/internal/adapter/repository/api/coinapi"
 	"rater/internal/adapter/repository/cache/memory"
+	"rater/internal/app/domain/types"
 	"rater/internal/app/usecase"
 	"rater/internal/port"
 	"testing"
 	"time"
 )
 
-var quote = "USD"
-var base = "BTC"
+var quote types.CurrencyNameString = "USD"
+var base types.CurrencyNameString = "BTC"
 var uri = fmt.Sprintf("/v1/rate/%s/%s", base, quote)
 var key = fmt.Sprintf("rate:base:%s:quote:%s", base, quote)
 
@@ -47,8 +49,8 @@ func makeApp() (*gin.Engine, port.CacheRepository) {
 
 	rateHandler := routes.NewRateHandler(rateUsecase)
 
-	baseCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("base", []string{base})
-	quoteCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("quote", []string{quote})
+	baseCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("base", []types.CurrencyNameString{base})
+	quoteCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("quote", []types.CurrencyNameString{quote})
 
 	router := gin.Default()
 	gin.SetMode(gin.ReleaseMode)
@@ -77,7 +79,9 @@ func requestRate(ctx context.Context, url string) (*response, error) {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	body, err := io.ReadAll(resp.Body)
 
@@ -122,10 +126,10 @@ func TestGetRate(t *testing.T) {
 			require.Failf(t, "cache should exist", "cache key: %s", key)
 		}
 
-		require.Equal(t, dto.StatusSuccess, rateResponse.Status)
-		require.Equal(t, base, rateResponse.Data.Base)
-		require.Equal(t, quote, rateResponse.Data.Quote)
-		require.Equal(t, "29295.929694597355", rateResponse.Data.Price)
+		assert.Equal(t, dto.StatusSuccess, rateResponse.Status)
+		assert.Equal(t, string(base), rateResponse.Data.Base)
+		assert.Equal(t, string(quote), rateResponse.Data.Quote)
+		assert.Equal(t, "29295.929694597355", rateResponse.Data.Price)
 	})
 
 	t.Run("cached", func(t *testing.T) {
@@ -137,8 +141,8 @@ func TestGetRate(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, dto.StatusSuccess, rateResponse.Status)
-		require.Equal(t, base, rateResponse.Data.Base)
-		require.Equal(t, quote, rateResponse.Data.Quote)
+		require.Equal(t, string(base), rateResponse.Data.Base)
+		require.Equal(t, string(quote), rateResponse.Data.Quote)
 		require.Equal(t, "29295.92969", rateResponse.Data.Price)
 	})
 }

@@ -28,7 +28,5 @@ func TestCoinGateRepository_Get(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rate)
 
-	println(rate.String())
-
 	require.Equal(t, rate.String(), big.NewFloat(29295.92969).String())
 }
