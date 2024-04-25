@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 	"math/big"
 	"rater/internal/app/domain/entity"
+	"rater/internal/app/domain/types"
 	"rater/internal/port"
 	"time"
 )
@@ -25,7 +26,7 @@ func NewRateUsecase(logger port.Logger, cache port.CacheRepository) *RateUsecase
 	}
 }
 
-func (e *RateUsecase) GetRate(ctx context.Context, quote, base string) (*entity.Rate, error) {
+func (e *RateUsecase) GetRate(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*entity.Rate, error) {
 	var price *big.Float
 	var provider string
 
@@ -60,8 +61,8 @@ func (e *RateUsecase) GetRate(ctx context.Context, quote, base string) (*entity.
 			e.logger.Error(
 				"usecase: cant get rate",
 				zap.Error(err),
-				zap.String("quote", quote),
-				zap.String("base", base),
+				zap.String("quote", quote.Lower()),
+				zap.String("base", base.Lower()),
 				zap.String("provider", name),
 			)
 			continue
@@ -82,8 +83,8 @@ func (e *RateUsecase) GetRate(ctx context.Context, quote, base string) (*entity.
 		e.logger.Error(
 			"usecase: cant put rate value into cache",
 			zap.Error(err),
-			zap.String("quote", quote),
-			zap.String("base", base),
+			zap.String("quote", quote.Lower()),
+			zap.String("base", base.Lower()),
 			zap.String("provider", provider),
 		)
 	}

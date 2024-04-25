@@ -28,7 +28,9 @@ func main() {
 	if nil != err {
 		panic(fmt.Sprintf("app: cant configure logger - %s", err))
 	}
-	defer log.Sync()
+	defer func() {
+		_ = log.Sync()
+	}()
 
 	cache, err := redis.NewCacheRepository(cfg.Redis, app)
 	if nil != err {

@@ -1,9 +1,11 @@
 package configs
 
+import "rater/internal/app/domain/types"
+
 type Config struct {
 	Port            string `default:"8080"`
-	BaseCurrencies  []string
-	QuoteCurrencies []string
+	BaseCurrencies  []types.BaseCurrency
+	QuoteCurrencies []types.QuoteCurrency
 	Redis           RedisConfig
 }
 
