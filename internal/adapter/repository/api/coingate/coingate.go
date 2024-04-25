@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
-	"strings"
+	"rater/internal/app/domain/types"
 )
 
 type Repository struct {
@@ -20,8 +20,13 @@ func NewRepository() *Repository {
 	return &Repository{url: url}
 }
 
-func (c *Repository) Get(ctx context.Context, quote, base string) (*big.Float, error) {
-	url := fmt.Sprintf("%s/%s/%s", c.url, strings.ToUpper(base), strings.ToUpper(quote))
+func (c *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*big.Float, error) {
+	url := fmt.Sprintf(
+		"%s/%s/%s",
+		c.url,
+		base.Lower(),
+		quote.Lower(),
+	)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

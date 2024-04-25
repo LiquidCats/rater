@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
-	"strings"
+	"rater/internal/app/domain/types"
 	"time"
 )
 
@@ -34,8 +34,13 @@ func NewRepository() *Repository {
 	}
 }
 
-func (a *Repository) Get(ctx context.Context, quote, base string) (*big.Float, error) {
-	url := fmt.Sprintf("%s/%s/%s", a.url, strings.ToUpper(base), strings.ToUpper(quote))
+func (a *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*big.Float, error) {
+	url := fmt.Sprintf(
+		"%s/%s/%s",
+		a.url,
+		base.Upper(),
+		quote.Upper(),
+	)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

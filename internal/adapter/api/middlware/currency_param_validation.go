@@ -4,16 +4,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"rater/internal/adapter/api/dto"
+	"rater/internal/app/domain/types"
 	"rater/pkg/utils/sliceutils"
 	"strings"
 )
 
 type CurrencyParamMiddleware struct {
-	allowed []string
+	allowed []types.CurrencyNameString
 	key     string
 }
 
-func NewCurrencyParamMiddleware(key string, allowed []string) *CurrencyParamMiddleware {
+func NewCurrencyParamMiddleware(key string, allowed []types.CurrencyNameString) *CurrencyParamMiddleware {
 	return &CurrencyParamMiddleware{
 		allowed: allowed,
 		key:     key,
@@ -38,7 +39,7 @@ func (i *CurrencyParamMiddleware) Handle(ctx *gin.Context) {
 		return
 	}
 
-	if !sliceutils.Contains(i.allowed, base) {
+	if !sliceutils.Contains(i.allowed, types.CurrencyNameString(base)) {
 		ctx.JSON(http.StatusUnprocessableEntity, dto.NewFailResponse(gin.H{
 			i.key: "not allowed",
 		}))
