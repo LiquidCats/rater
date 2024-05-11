@@ -16,8 +16,6 @@ jobs:
       RATER_PORT: "8080"
       RATER_BASE_CURRENCIES: "BTC"
       RATER_QUOTE_CURRENCIES: "USD"
-      RATER_COINGATE_URL: "http://mocks:3001/coingate/v2/rates/merchant"
-      RATER_COINAPI_URL: "http://mocks:3001/coinapi/v1/exchangerate"
       RATER_COINAPI_SECRET: "test1234"
       RATER_REDIS_ADDRESS: "cache:6379"
       RATER_REDIS_DB: "0"
@@ -25,6 +23,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install GO
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
 
       - name: Dependencies
         run: go get -d ./...
