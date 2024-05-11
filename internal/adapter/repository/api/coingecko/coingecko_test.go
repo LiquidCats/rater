@@ -2,11 +2,12 @@ package coingecko
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var response = `{"bitcoin": {"eur": 60715.43364698}}`

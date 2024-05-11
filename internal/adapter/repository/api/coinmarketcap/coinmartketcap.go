@@ -1,4 +1,4 @@
-package coingecko
+package coinmarketcap
 
 import (
 	"context"
@@ -12,32 +12,50 @@ import (
 )
 
 type Repository struct {
-	url string
+	url    string
+	secret string
 }
 
-type apiResponse map[string]interface{}
+type price struct {
+	Price float64
+}
 
-func NewRepository() *Repository {
-	url := os.Getenv("RATER_COINGECKO_URL")
+type conversion struct {
+	ID     string
+	Amount uint
+	Name   string
+	Symbol string
+	Quote  map[string]price
+}
+
+type apiResponse struct {
+	Data conversion
+}
+
+func NewReposiotry() *Repository {
+	url := os.Getenv("RATER_COINMARKETCAP_URL")
+	secret := os.Getenv("RATER_COINMARKETCAP_SECRET")
 
 	return &Repository{
-		url: url,
+		url:    url,
+		secret: secret,
 	}
 }
 
 func (r *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*big.Float, error) {
-	// https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&precision=8
 	url := fmt.Sprintf(
-		"%s?ids=%s&vs_currencies=%s&precision=8",
+		"%s?amount=1&symbol=%s&convert=%s",
 		r.url,
-		base.Transform(getCoinID),
+		base.Upper(),
 		quote.Lower(),
 	)
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("repo: could not create request: %s\n", err)
 	}
+
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("X-CMC_PRO_API_KEY", r.secret)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -56,24 +74,14 @@ func (r *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base ty
 		return nil, fmt.Errorf("repo: could not parse response: %w", err)
 	}
 
-	rateBase, ok := response[base.Transform(getCoinID)]
+	quotePrice, ok := response.Data.Quote[quote.Upper()]
 	if !ok {
-		return nil, fmt.Errorf("repo: could not get base rate from response")
+		return nil, fmt.Errorf("repo: could not parse response: %w", err)
 	}
 
-	rateQuote, ok := rateBase.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("repo: could not get quoted rate from response")
-	}
-
-	val, ok := rateQuote[quote.Lower()]
-	if !ok {
-		return nil, fmt.Errorf("repo: could not get rate value from reponse")
-	}
-
-	return big.NewFloat(val.(float64)), nil
+	return big.NewFloat(quotePrice.Price), nil
 }
 
 func (r *Repository) Name() string {
-	return "coingecko"
+	return "coinmarketcap"
 }
