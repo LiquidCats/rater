@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"os"
 	"os/signal"
 	"rater/configs"
@@ -13,10 +12,14 @@ import (
 	"rater/internal/adapter/repository/api/cex"
 	"rater/internal/adapter/repository/api/coinapi"
 	"rater/internal/adapter/repository/api/coingate"
+	"rater/internal/adapter/repository/api/coingecko"
+	"rater/internal/adapter/repository/api/coinmarketcap"
 	"rater/internal/adapter/repository/cache/redis"
 	httpserver "rater/internal/adapter/server"
 	"rater/internal/app/usecase"
 	"syscall"
+
+	"go.uber.org/zap"
 )
 
 const app = "rater"
@@ -39,9 +42,11 @@ func main() {
 
 	rateUsecase := usecase.NewRateUsecase(log, cache)
 
+	rateUsecase.SetAdapter(cex.NewRepository())
+	rateUsecase.SetAdapter(coingecko.NewRepository())
+	rateUsecase.SetAdapter(coinmarketcap.NewReposiotry())
 	rateUsecase.SetAdapter(coinapi.NewRepository())
 	rateUsecase.SetAdapter(coingate.NewRepository())
-	rateUsecase.SetAdapter(cex.NewRepository())
 
 	rootHandler := routes.NewRootHandler()
 	rateHandler := routes.NewRateHandler(rateUsecase)
