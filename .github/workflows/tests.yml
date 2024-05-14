@@ -11,99 +11,26 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.20"]
+        go-version: ["1.22"]
     env:
       RATER_PORT: "8080"
       RATER_BASE_CURRENCIES: "BTC"
       RATER_QUOTE_CURRENCIES: "USD"
-      RATER_COINGATE_URL: "http://mocks:3001/coingate/v2/rates/merchant"
-      RATER_COINAPI_URL: "http://mocks:3001/coinapi/v1/exchangerate"
       RATER_COINAPI_SECRET: "test1234"
       RATER_REDIS_ADDRESS: "cache:6379"
       RATER_REDIS_DB: "0"
       GOPATH: /home/runner/work/_temp/go
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Install GO
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
 
       - name: Dependencies
         run: go get -d ./...
 
-      - name: Creat folder for artifacts
-        run: mkdir -p $(pwd)/artifacts
-
-      - name: Docker Network
-        run: docker network create rater
-
-      - name: Cache
-        run: >
-          docker run -id
-          --rm
-          --name cache
-          --network rater
-          --publish 6379:6379
-          redis:alpine
-
-      - name: Mocks
-        run: >
-          docker run -id
-          --rm
-          --name mocks
-          --network rater
-          --workdir /app
-          --volume $(pwd)/test/mocks/api:/app:ro
-          --publish 3001:3001
-          --entrypoint ""
-          friendsofgo/killgrave:latest /go/bin/killgrave --config /app/configs.yml
-
-      - name: Dev
-        run: >
-          docker run -id
-          --rm
-          --name dev
-          --network rater
-          --publish 8080:8080 
-          --workdir /app
-          --volume $(pwd):/app:ro
-          --volume ${GOPATH}:/go
-          --env RATER_PORT
-          --env RATER_BASE_CURRENCIES
-          --env RATER_QUOTE_CURRENCIES
-          --env RATER_COINGATE_URL
-          --env RATER_COINAPI_URL
-          --env RATER_COINAPI_SECRET
-          --env RATER_REDIS_ADDRESS
-          --env RATER_REDIS_DB
-          --env GOPATH=/go
-          golang:latest go run /app/cmd/rater/main.go
-
-      - name: Testing
-        run: >
-          docker run -i
-          --name tests
-          --network rater
-          --workdir /app
-          --volume $(pwd):/app:ro
-          --volume ${GOPATH}:/go
-          --env RATER_PORT
-          --env RATER_BASE_CURRENCIES
-          --env RATER_QUOTE_CURRENCIES
-          --env RATER_COINGATE_URL
-          --env RATER_COINAPI_URL
-          --env RATER_COINAPI_SECRET
-          --env RATER_REDIS_ADDRESS
-          --env RATER_REDIS_DB
-          --env GOPATH=/go
-          --env CGO_ENABLED=1
-          golang:latest go test -v -vet=off -race ./...
-
-      - name: Create Artifact
-        if: always()
-        run: docker logs tests >> $(pwd)/artifacts/test.txt
-
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: rater-tests-log
-          path: artifacts/test.txt
+      - name: Run Tests
+        run: go test -vet=off -v -race ./...

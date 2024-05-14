@@ -1,4 +1,4 @@
-package api
+package coinapi
 
 import (
 	"context"
@@ -7,11 +7,12 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"strings"
+	"os"
+	"rater/internal/app/domain/types"
 	"time"
 )
 
-type CoinApiRepository struct {
+type Repository struct {
 	url      string
 	apiToken string
 }
@@ -23,22 +24,30 @@ type coinApiResponse struct {
 	Rate         float64   `json:"rate"`
 }
 
-func NewCoinApiRepository(url, apiToken string) *CoinApiRepository {
-	return &CoinApiRepository{
+func NewRepository() *Repository {
+	url := os.Getenv("RATER_COINAPI_URL")
+	apiToken := os.Getenv("RATER_COINAPI_SECRET")
+
+	return &Repository{
 		url:      url,
 		apiToken: apiToken,
 	}
 }
 
-func (a *CoinApiRepository) Get(ctx context.Context, quote, base string) (*big.Float, error) {
-	url := fmt.Sprintf("%s/%s/%s", a.url, strings.ToUpper(base), strings.ToUpper(quote))
+func (a *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*big.Float, error) {
+	url := fmt.Sprintf(
+		"%s/%s/%s",
+		a.url,
+		base.Upper(),
+		quote.Upper(),
+	)
 
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("repo: could not create request: %s\n", err)
 	}
 
-	req.WithContext(ctx)
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-CoinAPI-Key", a.apiToken)
 
 	res, err := http.DefaultClient.Do(req)
@@ -46,6 +55,10 @@ func (a *CoinApiRepository) Get(ctx context.Context, quote, base string) (*big.F
 		return nil, fmt.Errorf("repo: error making api request: %s\n", err)
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("repo: error making api request: %s\n", res.Status)
+	}
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -58,13 +71,9 @@ func (a *CoinApiRepository) Get(ctx context.Context, quote, base string) (*big.F
 		return nil, fmt.Errorf("repo: could not parse response: %s\n", err)
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("repo: could not parse response: %s\n", err)
-	}
-
 	return big.NewFloat(resp.Rate), nil
 }
 
-func (a *CoinApiRepository) Name() string {
+func (a *Repository) Name() string {
 	return "coinapi"
 }
