@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"rater/internal/adapter/api/dto"
+	"rater/internal/app/domain/types"
 	"rater/internal/app/usecase"
 )
 
@@ -20,7 +21,8 @@ func NewRateHandler(usecase *usecase.RateUsecase) *RateHandler {
 func (r *RateHandler) GetRate(ctx *gin.Context) {
 	quote := ctx.Param("quote")
 	base := ctx.Param("base")
-	rate, err := r.usecase.GetRate(ctx, quote, base)
+
+	rate, err := r.usecase.GetRate(ctx, types.QuoteCurrency(quote), types.BaseCurrency(base))
 	if nil != err {
 		ctx.JSON(http.StatusBadRequest, dto.NewErrorResponse(err))
 

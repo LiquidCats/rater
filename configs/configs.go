@@ -1,12 +1,11 @@
 package configs
 
+import "rater/internal/app/domain/types"
+
 type Config struct {
-	Port            string
-	BaseCurrencies  []string
-	QuoteCurrencies []string
-	CoinGateUrl     string
-	CoinApiUrl      string
-	CoinApiSecret   string
+	Port            string `default:"8080"`
+	BaseCurrencies  []types.BaseCurrency
+	QuoteCurrencies []types.QuoteCurrency
 	Redis           RedisConfig
 }
 

@@ -10,21 +10,33 @@ import (
 	"time"
 )
 
-type CacheRepository struct {
-	baseKey string
-	client  *redis.Client
+type redisClient interface {
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) *redis.StatusCmd
+	Get(ctx context.Context, key string) *redis.StringCmd
+	Exists(ctx context.Context, key ...string) *redis.IntCmd
+	Del(ctx context.Context, key ...string) *redis.IntCmd
 }
 
-func NewCacheRepository(cfg configs.RedisConfig, baseKey string) *CacheRepository {
+type CacheRepository struct {
+	baseKey string
+	client  redisClient
+}
+
+func NewCacheRepository(cfg configs.RedisConfig, baseKey string) (*CacheRepository, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr: cfg.Address,
-		DB:   cfg.DB,
+		Addr:             cfg.Address,
+		Password:         cfg.Password,
+		DB:               cfg.DB,
+		DisableIndentity: true,
+		Protocol:         3,
 	})
+
+	cmd := client.Ping(context.Background())
 
 	return &CacheRepository{
 		baseKey: baseKey,
 		client:  client,
-	}
+	}, cmd.Err()
 }
 
 func (c *CacheRepository) Has(ctx context.Context, key string) bool {
