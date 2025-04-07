@@ -1,4 +1,4 @@
-package coingecko
+package coingecko_test
 
 import (
 	"context"
@@ -7,6 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/LiquidCats/rater/configs"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/coingecko"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,11 +24,14 @@ func TestCoinGateRepository_Get(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	repo := &Repository{
-		url: ts.URL,
-	}
+	repo := coingecko.NewRepository(configs.CoinGeckoConfig{
+		URL: ts.URL,
+	})
 
-	rate, err := repo.Get(context.Background(), "EUR", "BTC")
+	rate, err := repo.GetRate(context.Background(), entity.Pair{
+		From: "BTC",
+		To:   "EUR",
+	})
 	require.NoError(t, err)
 	require.NotNil(t, rate)
 

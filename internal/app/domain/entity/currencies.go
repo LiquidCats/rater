@@ -16,6 +16,10 @@ func (s CurrencyISO) ToLower() CurrencyISO {
 	return CurrencyISO(strings.ToLower(string(s)))
 }
 
+func (s CurrencyISO) String() string {
+	return string(s)
+}
+
 type CurrencyPairString string
 
 func (s CurrencyPairString) ToUpper() CurrencyPairString {
@@ -46,9 +50,9 @@ type Pair struct {
 }
 
 func (p Pair) Join(glue string) string {
-	return fmt.Sprintf("%s%s%s", p.From.ToUpper(), glue, p.To.ToLower())
+	return fmt.Sprintf("%s%s%s", p.From.ToUpper(), glue, p.To.ToUpper())
 }
 
 func (p Pair) ToCurrencyPairString() CurrencyPairString {
-	return CurrencyPairString(fmt.Sprintf("%s_%s", p.From.ToLower(), p.To.ToLower()))
+	return CurrencyPairString(fmt.Sprintf("%s_%s", p.From.ToUpper(), p.To.ToUpper()))
 }

@@ -1,12 +1,16 @@
-package coingate
+package coingate_test
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/LiquidCats/rater/configs"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/coingate"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/stretchr/testify/require"
 )
 
 var response = `29295.929694597355`
@@ -16,15 +20,18 @@ func TestCoinGateRepository_Get(t *testing.T) {
 		require.Equal(t, http.MethodGet, r.Method)
 
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(response))
+		_, _ = w.Write([]byte(response))
 	}))
 	defer ts.Close()
 
-	repo := &Repository{
-		url: ts.URL,
-	}
+	repo := coingate.NewRepository(configs.CoinGateConfig{
+		URL: ts.URL,
+	})
 
-	rate, err := repo.Get(context.Background(), "USD", "BTC")
+	rate, err := repo.GetRate(context.Background(), entity.Pair{
+		From: "BTC",
+		To:   "USD",
+	})
 	require.NoError(t, err)
 	require.NotNil(t, rate)
 
