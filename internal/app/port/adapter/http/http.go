@@ -1,7 +1,7 @@
-package port
+package http
 
 import "github.com/gin-gonic/gin"
 
-type Middleware interface {
+type Handler interface {
 	Handle(ctx *gin.Context)
 }
