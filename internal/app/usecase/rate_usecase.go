@@ -2,104 +2,86 @@ package usecase
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"go.uber.org/zap"
 	"math/big"
-	"rater/internal/app/domain/entity"
-	"rater/internal/app/domain/types"
-	"rater/internal/port"
 	"time"
+
+	"github.com/LiquidCats/rater/internal/adapter/repository/api"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	domain "github.com/LiquidCats/rater/internal/app/domain/errors"
+	"github.com/LiquidCats/rater/internal/app/port/adapter/repository"
+	"github.com/rs/zerolog"
 )
 
 type RateUsecase struct {
-	logger   port.Logger
-	cache    port.CacheRepository
-	adapters map[string]port.RateRepository
+	cache    repository.RateCache
+	adapters map[entity.ProviderName]repository.RateApi
 }
 
-func NewRateUsecase(logger port.Logger, cache port.CacheRepository) *RateUsecase {
+func NewRateUsecase(cache repository.RateCache, providers api.Registry) *RateUsecase {
 	return &RateUsecase{
-		logger:   logger,
 		cache:    cache,
-		adapters: make(map[string]port.RateRepository),
+		adapters: providers,
 	}
 }
 
-func (e *RateUsecase) GetRate(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*entity.Rate, error) {
-	var price *big.Float
-	var provider string
+func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Rate, error) {
+	var (
+		rate *entity.Rate
 
-	key := fmt.Sprintf("rate:base:%s:quote:%s", base, quote)
-	if e.cache.Has(ctx, key) {
-		priceString, err := e.cache.Get(ctx, key)
-		if nil != err {
-			e.logger.Error("usecase: cant get rate value from cache", zap.Error(err))
-		}
+		price    big.Float
+		provider entity.ProviderName
+	)
 
-		if "" != priceString {
-			f, _, err := big.ParseFloat(priceString, 10, 0, big.ToNearestEven)
-			if nil != err {
-				e.logger.Error("usecase: incorrect rate value from cache", zap.Error(err))
-			}
-			price = f
-		}
+	logger := zerolog.Ctx(ctx).
+		With().
+		Str("name", "user.get_rate").
+		Stack().
+		Logger()
+
+	rate, err := e.cache.GetRate(ctx, pair)
+	if err != nil {
+		logger.Error().Err(err).Msg("cant get rate value from cache")
 	}
 
-	if nil != price {
-		return &entity.Rate{
-			Base:     base,
-			Quote:    quote,
-			Price:    price,
-			Provider: "cache",
-		}, nil
+	if rate != nil {
+		return rate, nil
 	}
 
 	for name, adapter := range e.adapters {
-		p, err := adapter.Get(ctx, quote, base)
+		price, err = adapter.GetRate(ctx, pair)
+		provider = name
+
 		if err != nil {
-			e.logger.Error(
-				"usecase: cant get rate",
-				zap.Error(err),
-				zap.String("quote", quote.Lower()),
-				zap.String("base", base.Lower()),
-				zap.String("provider", name),
-			)
+			logger.Error().
+				Err(err).
+				Any("pair", pair).
+				Any("provider", provider).
+				Msg("usecase: cant get rate")
 			continue
 		}
 
-		if p != nil {
-			price = p
-			provider = name
-			break
+		if price.Cmp(big.NewFloat(0)) == 0 {
+			continue
 		}
 	}
 
-	if nil == price {
-		return nil, errors.New("usecase: exchange rate is not available right now")
+	if price.Cmp(big.NewFloat(0)) == 0 {
+		return nil, domain.ErrRateNotAvailable
 	}
 
-	if err := e.cache.Set(ctx, key, price.String(), 5*time.Minute); nil != err {
-		e.logger.Error(
-			"usecase: cant put rate value into cache",
-			zap.Error(err),
-			zap.String("quote", quote.Lower()),
-			zap.String("base", base.Lower()),
-			zap.String("provider", provider),
-		)
-	}
-
-	return &entity.Rate{
-		Base:     base,
-		Quote:    quote,
+	rate = &entity.Rate{
+		Pair:     pair,
 		Price:    price,
 		Provider: provider,
-	}, nil
-}
-
-func (e *RateUsecase) SetAdapter(adapter port.NamedRateRepository) {
-	_, ok := e.adapters[adapter.Name()]
-	if !ok {
-		e.adapters[adapter.Name()] = adapter.(port.RateRepository)
 	}
+
+	if err := e.cache.PutRate(ctx, *rate, 5*time.Minute); nil != err {
+		logger.Error().
+			Err(err).
+			Any("pair", pair).
+			Any("provider", provider).
+			Msg("usecase: cant put rate value into cache")
+	}
+
+	return rate, nil
 }

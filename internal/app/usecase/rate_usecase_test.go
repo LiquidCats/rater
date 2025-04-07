@@ -1,40 +1,102 @@
-package usecase
+package usecase_test
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"math/big"
-	"rater/internal/adapter/logger"
-	"rater/internal/adapter/repository/cache/memory"
-	"rater/internal/app/domain/types"
 	"testing"
+	"time"
+
+	"github.com/LiquidCats/rater/internal/adapter/repository/api"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/LiquidCats/rater/internal/app/usecase"
+	"github.com/LiquidCats/rater/test/mocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-type TestAdapter struct {
-}
-
-func (a *TestAdapter) Get(_ context.Context, _ types.QuoteCurrency, _ types.BaseCurrency) (*big.Float, error) {
-	return big.NewFloat(25000.77733333), nil
-}
-
-func (a *TestAdapter) Name() string {
-	return "test"
-}
-
 func TestExchange_Get(t *testing.T) {
-	l := logger.NewNilLogger()
-	c := memory.NewCacheRepository()
+	tests := []struct {
+		name   string
+		before func(t *testing.T) *usecase.RateUsecase
+	}{
+		{
+			name: "rate from provider",
+			before: func(t *testing.T) *usecase.RateUsecase {
+				rateCache := mocks.NewRateCache(t)
+				rateApi := mocks.NewRateApi(t)
 
-	exch := NewRateUsecase(l, c)
-	exch.SetAdapter(&TestAdapter{})
+				matcher := mock.MatchedBy(func(pair entity.Pair) bool {
+					return pair.From == "USD" && pair.To == "BTC"
+				})
 
-	rate, err := exch.GetRate(context.Background(), "USD", "BTC")
+				rateCache.On("GetRate", mock.Anything, matcher).Once().Return(nil, nil)
+				rateCache.On("PutRate", mock.Anything, entity.Rate{
+					Pair: entity.Pair{
+						From: "USD",
+						To:   "BTC",
+					},
+					Price:    *big.NewFloat(25000.77733333),
+					Provider: "test",
+				}, time.Minute*5).Once().Return(nil)
 
-	require.NoError(t, err)
-	require.NotNil(t, rate)
+				rateApi.On("GetRate", mock.Anything, matcher).Once().Return(*big.NewFloat(25000.77733333), nil)
 
-	assert.Equal(t, "BTC", string(rate.Base))
-	assert.Equal(t, "USD", string(rate.Quote))
-	assert.Equal(t, big.NewFloat(25000.77733333).String(), rate.Price.String())
+				providers := api.Registry{
+					"test": rateApi,
+				}
+
+				return usecase.NewRateUsecase(rateCache, providers)
+			},
+		},
+		{
+			name: "rate from cache",
+			before: func(t *testing.T) *usecase.RateUsecase {
+				rateCache := mocks.NewRateCache(t)
+				rateApi := mocks.NewRateApi(t)
+
+				matcher := mock.MatchedBy(func(pair entity.Pair) bool {
+					return pair.From == "USD" && pair.To == "BTC"
+				})
+
+				rateCache.On("GetRate", mock.Anything, matcher).Once().Return(&entity.Rate{
+					Pair: entity.Pair{
+						From: "USD",
+						To:   "BTC",
+					},
+					Price:    *big.NewFloat(25000.77733333),
+					Provider: "test",
+				}, nil)
+
+				providers := api.Registry{
+					"test": rateApi,
+				}
+
+				return usecase.NewRateUsecase(rateCache, providers)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// arrange
+			ctx := context.Background()
+
+			uc := tt.before(t)
+
+			// act
+			rate, err := uc.GetRate(ctx, entity.Pair{
+				From: "USD",
+				To:   "BTC",
+			})
+
+			// assert
+			require.NoError(t, err)
+			require.NotNil(t, rate)
+
+			assert.Equal(t, "BTC", string(rate.Pair.To))
+			assert.Equal(t, "USD", string(rate.Pair.From))
+			assert.Equal(t, big.NewFloat(25000.77733333).String(), rate.Price.String())
+		})
+	}
 }
