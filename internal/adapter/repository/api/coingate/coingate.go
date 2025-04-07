@@ -6,36 +6,38 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"os"
-	"rater/internal/app/domain/types"
+
+	"github.com/LiquidCats/rater/configs"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/pkg/errors"
 )
 
 type Repository struct {
-	url string
+	cfg configs.CoinGateConfig
 }
 
-func NewRepository() *Repository {
-	url := os.Getenv("RATER_COINGATE_URL")
-
-	return &Repository{url: url}
+func NewRepository(cfg configs.CoinGateConfig) *Repository {
+	return &Repository{
+		cfg: cfg,
+	}
 }
 
-func (c *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*big.Float, error) {
+func (c *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, error) {
 	url := fmt.Sprintf(
 		"%s/%s/%s",
-		c.url,
-		base.Lower(),
-		quote.Lower(),
+		c.cfg.URL,
+		pair.From.ToLower(),
+		pair.To.ToLower(),
 	)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not create request: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not create request")
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("repo: error making api request: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: error making http request")
 	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -45,17 +47,17 @@ func (c *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base ty
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not read response body: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not read response body")
 	}
 
 	v, _, err := big.ParseFloat(string(resBody), 10, 0, big.ToNearestEven)
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not parse response: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not parse response")
 	}
 
-	return v, nil
+	return *v, nil
 }
 
-func (c *Repository) Name() string {
+func (c *Repository) Name() entity.ProviderName {
 	return "coingate"
 }
