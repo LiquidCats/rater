@@ -1,14 +1,16 @@
 package dto
 
 import (
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/gin-gonic/gin"
-	"rater/internal/app/domain/entity"
 )
 
+type ResponseStatus string
+
 const (
-	StatusSuccess = "success"
-	StatusFail    = "fail"
-	StatusError   = "error"
+	StatusSuccess ResponseStatus = "success"
+	StatusFail    ResponseStatus = "fail"
+	StatusError   ResponseStatus = "error"
 )
 
 func NewSuccessResponse(data gin.H) gin.H {
@@ -38,8 +40,13 @@ func NewRootResponse(version string) gin.H {
 
 func NewRateResponse(rate *entity.Rate) gin.H {
 	return NewSuccessResponse(gin.H{
-		"quote": rate.Quote,
-		"base":  rate.Base,
+		"pair":  rate.Pair.ToCurrencyPairString().ToUpper(),
 		"price": rate.Price,
+	})
+}
+
+func NewValidationErrorResponse(key string, texts ...string) gin.H {
+	return NewFailResponse(gin.H{
+		key: texts,
 	})
 }

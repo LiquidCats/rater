@@ -1,36 +1,24 @@
-name: Tests
+name: Go Tests
 
 on:
+  workflow_call:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ["1.22"]
-    env:
-      RATER_PORT: "8080"
-      RATER_BASE_CURRENCIES: "BTC"
-      RATER_QUOTE_CURRENCIES: "USD"
-      RATER_COINAPI_SECRET: "test1234"
-      RATER_REDIS_ADDRESS: "cache:6379"
-      RATER_REDIS_DB: "0"
-      GOPATH: /home/runner/work/_temp/go
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Set Up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24.1'
 
-      - name: Install GO
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go-version }}
+    - name: Check Out
+      uses: actions/checkout@v4
 
-      - name: Dependencies
-        run: go get -d ./...
-
-      - name: Run Tests
-        run: go test -vet=off -v -race ./...
+    - name: Run Tests
+      run: go test -v ./...
