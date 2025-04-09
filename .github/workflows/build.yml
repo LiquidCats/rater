@@ -45,7 +45,9 @@ jobs:
         context: .
         file: ./Dockerfile
         push: true
-        tags: ghcr.io/${{ steps.repository.outputs.lowercase }}:${{ github.ref_name }}
+        tags: |
+          ghcr.io/${{ steps.repository.outputs.lowercase }}:${{ github.ref_name }}
+          ghcr.io/${{ steps.repository.outputs.lowercase }}:latest
 
     - name: Build and push Docker image (push)
       if: startsWith(github.ref, 'refs/heads/main')
