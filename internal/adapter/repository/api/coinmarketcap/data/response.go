@@ -1,6 +1,6 @@
 package data
 
-type ApiResponse struct {
+type APIResponse struct {
 	Data Conversion `json:"data"`
 }
 

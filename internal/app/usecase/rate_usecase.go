@@ -14,7 +14,7 @@ import (
 
 type RateUsecase struct {
 	cache    repository.RateCache
-	adapters map[entity.ProviderName]repository.RateApi
+	adapters map[entity.ProviderName]repository.RateAPI
 }
 
 func NewRateUsecase(cache repository.RateCache, providers api.Registry) *RateUsecase {
@@ -75,7 +75,7 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 		Provider: provider,
 	}
 
-	if err := e.cache.PutRate(ctx, *rate, 5*time.Minute); nil != err {
+	if err = e.cache.PutRate(ctx, *rate, 5*time.Minute); nil != err { // nolint:mnd
 		logger.Error().
 			Err(err).
 			Any("pair", pair).

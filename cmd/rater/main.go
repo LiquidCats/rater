@@ -81,7 +81,7 @@ func main() {
 		},
 	}
 
-	if err := graceful.WaitContext(
+	if err = graceful.WaitContext(
 		ctx,
 		runners...,
 	); err != nil {

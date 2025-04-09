@@ -38,7 +38,7 @@ func (a *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-CoinAPI-Key", string(a.cfg.Secret))
+	req.Header.Set("X-CoinAPI-Key", string(a.cfg.Secret)) //nolint:canonicalheader
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -46,7 +46,7 @@ func (a *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode >= 400 {
+	if res.StatusCode >= http.StatusBadRequest {
 		return big.Float{}, errors.Errorf("repo: error making http request: %s", res.Status)
 	}
 
@@ -55,7 +55,7 @@ func (a *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 		return big.Float{}, errors.Wrap(err, "repo: could not read response body")
 	}
 
-	var resp data.ApiResponse
+	var resp data.APIResponse
 
 	if err = json.Unmarshal(resBody, &resp); nil != err {
 		return big.Float{}, errors.Wrap(err, "repo: could not parse response")

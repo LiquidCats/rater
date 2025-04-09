@@ -33,7 +33,7 @@ func (m *PairValidationMiddleware) Handle(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
-	if len(pair) < 7 {
+	if len(pair) < 7 { // nolint:mnd
 		m.setValidationError(ctx, "should be 7 characters long at least")
 		ctx.Abort()
 		return

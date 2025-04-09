@@ -23,7 +23,7 @@ func NewRepository(cfg configs.CexConfig) *Repository {
 }
 
 func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, error) {
-	body := data.ApiRequest{Pairs: []string{pair.Join("-")}}
+	body := data.APIRequest{Pairs: []string{pair.Join("-")}}
 
 	bodyByres, err := json.Marshal(body)
 	if err != nil {
@@ -39,18 +39,16 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 	if err != nil {
 		return big.Float{}, errors.Wrap(err, "repo: error making http request")
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-		}
-	}(res.Body)
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return big.Float{}, errors.Wrap(err, "repo: could not read response body")
 	}
 
-	var resp data.ApiResponse
+	var resp data.APIResponse
 
 	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
@@ -62,7 +60,7 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 		return big.Float{}, errors.Wrap(err, "repo: could not unmarshal response")
 	}
 
-	v, _, err := big.ParseFloat(tickerInfo.LastTradePrice, 10, 0, big.ToNearestEven)
+	v, _, err := big.ParseFloat(tickerInfo.LastTradePrice, 10, 0, big.ToNearestEven) // nolint:mnd
 	if err != nil {
 		return big.Float{}, errors.Wrap(err, "repo: could not parse value")
 	}

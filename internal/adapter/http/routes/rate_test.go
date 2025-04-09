@@ -23,7 +23,7 @@ func TestRateHandler_Handle(t *testing.T) {
 	l := zerolog.New(zerolog.NewTestWriter(t))
 
 	rateCache := mocks.NewRateCache(t)
-	rateApi := mocks.NewRateApi(t)
+	rateAPI := mocks.NewRateApi(t)
 
 	matcher := mock.MatchedBy(func(pair entity.Pair) bool {
 		return pair.From == "BTC" && pair.To == "USD"
@@ -39,10 +39,10 @@ func TestRateHandler_Handle(t *testing.T) {
 		Provider: "test",
 	}, time.Minute*5).Once().Return(nil)
 
-	rateApi.On("GetRate", mock.Anything, matcher).Once().Return(*big.NewFloat(25000.77733333), nil)
+	rateAPI.On("GetRate", mock.Anything, matcher).Once().Return(*big.NewFloat(25000.77733333), nil)
 
 	useCase := usecase.NewRateUsecase(rateCache, api.Registry{
-		"test": rateApi,
+		"test": rateAPI,
 	})
 	handler := routes.NewRateHandler(useCase)
 
@@ -55,5 +55,5 @@ func TestRateHandler_Handle(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, `{"data":{"pair":"BTC_USD","price":{}},"status":"success"}`, w.Body.String())
+	assert.JSONEq(t, `{"data":{"pair":"BTC_USD","price":{}},"status":"success"}`, w.Body.String())
 }

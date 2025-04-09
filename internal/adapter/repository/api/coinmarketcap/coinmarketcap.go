@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 
@@ -37,19 +36,17 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 	}
 
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("X-CMC_PRO_API_KEY", string(r.cfg.Secret))
+	req.Header.Set("X-CMC_PRO_API_KEY", string(r.cfg.Secret)) //nolint:canonicalheader
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return big.Float{}, errors.Wrap(err, "repo: error making http request")
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-		}
-	}(res.Body)
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
-	var response data.ApiResponse
+	var response data.APIResponse
 
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {

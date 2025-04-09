@@ -33,7 +33,7 @@ func (s CurrencyPairString) ToLower() CurrencyPairString {
 func (s CurrencyPairString) ToPair() (Pair, error) {
 	parts := strings.Split(string(s), "_")
 
-	if len(parts) != 2 {
+	if len(parts) != 2 { // nolint:mnd
 		return Pair{}, errors.New("invalid currency pair")
 	}
 
@@ -44,8 +44,8 @@ func (s CurrencyPairString) ToPair() (Pair, error) {
 }
 
 type Pair struct {
-	From CurrencyISO
-	To   CurrencyISO
+	From CurrencyISO `json:"from"`
+	To   CurrencyISO `json:"to"`
 	_    any
 }
 

@@ -49,7 +49,6 @@ linters:
     - nilnesserr
     - nilnil
     - noctx
-    - nolintlint
     - nonamedreturns
     - nosprintfhostport
     - perfsprint
@@ -105,10 +104,6 @@ linters:
               desc: Use math/rand/v2 instead, see https://go.dev/blog/randv2
     errcheck:
       check-type-assertions: true
-    exhaustive:
-      check:
-        - switch
-        - map
     exhaustruct:
       exclude:
         - ^net/http.Client$

@@ -24,7 +24,7 @@ func NewCacheRepository(cfg configs.RedisConfig, baseKey string) (*CacheReposito
 		Addr:     cfg.Address,
 		Password: string(cfg.Password),
 		DB:       cfg.DB,
-		Protocol: 3,
+		Protocol: 3, // nolint:mnd
 	})
 
 	cmd := client.Ping(context.Background())
@@ -43,7 +43,7 @@ func (c *CacheRepository) GetRate(ctx context.Context, pair entity.Pair) (*entit
 
 	var rate entity.Rate
 	decoder := json.NewDecoder(bytes.NewReader(b))
-	if err := decoder.Decode(&rate); err != nil {
+	if err = decoder.Decode(&rate); err != nil {
 		return nil, errors.Wrap(err, "decode rate from cache")
 	}
 

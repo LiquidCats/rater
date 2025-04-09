@@ -10,7 +10,7 @@ func (i CoinGeckoID) String() string {
 	return string(i)
 }
 
-var mapping = map[entity.CurrencyISO]CoinGeckoID{
+var mapping = map[entity.CurrencyISO]CoinGeckoID{ // nolint:gochecknoglobals
 	"BTC": "bitcoin",
 	"ETH": "ethereum",
 }
