@@ -1,31 +1,37 @@
-package coingecko
+package coingecko_test
 
 import (
-	"context"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/LiquidCats/rater/configs"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/coingecko"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var response = `{"bitcoin": {"eur": 60715.43364698}}`
+const response = `{"bitcoin": {"eur": 60715.43364698}}`
 
 func TestCoinGateRepository_Get(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, http.MethodGet, r.Method)
 
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(response))
 	}))
 	defer ts.Close()
 
-	repo := &Repository{
-		url: ts.URL,
-	}
+	repo := coingecko.NewRepository(configs.CoinGeckoConfig{
+		URL: ts.URL,
+	})
 
-	rate, err := repo.Get(context.Background(), "EUR", "BTC")
+	rate, err := repo.GetRate(t.Context(), entity.Pair{
+		From: "BTC",
+		To:   "EUR",
+	})
 	require.NoError(t, err)
 	require.NotNil(t, rate)
 

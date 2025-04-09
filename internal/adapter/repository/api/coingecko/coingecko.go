@@ -4,76 +4,78 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
-	"os"
-	"rater/internal/app/domain/types"
+
+	"github.com/LiquidCats/rater/configs"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/coingecko/data"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/pkg/errors"
 )
 
 type Repository struct {
-	url string
+	cfg configs.CoinGeckoConfig
 }
 
-type apiResponse map[string]interface{}
-
-func NewRepository() *Repository {
-	url := os.Getenv("RATER_COINGECKO_URL")
-
+func NewRepository(cfg configs.CoinGeckoConfig) *Repository {
 	return &Repository{
-		url: url,
+		cfg: cfg,
 	}
 }
 
-func (r *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*big.Float, error) {
+func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, error) {
 	// https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&precision=8
+	id, ok := data.GetCoinID(pair.From)
+	if !ok {
+		return big.Float{}, errors.New("repo: cant find coingecko id")
+	}
+
 	url := fmt.Sprintf(
 		"%s?ids=%s&vs_currencies=%s&precision=8",
-		r.url,
-		base.Transform(getCoinID),
-		quote.Lower(),
+		r.cfg.URL,
+		id,
+		pair.To.ToLower(),
 	)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not create request: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not create request")
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("repo: error making api request: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: error making http request")
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-		}
-	}(res.Body)
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
-	var response apiResponse
+	var response data.APIResponse
 
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not parse response: %w", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not parse response")
 	}
 
-	rateBase, ok := response[base.Transform(getCoinID)]
+	rateBase, ok := response[id.String()]
 	if !ok {
-		return nil, fmt.Errorf("repo: could not get base rate from response")
+		return big.Float{}, errors.New("repo: could not get base rate from response")
 	}
 
 	rateQuote, ok := rateBase.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("repo: could not get quoted rate from response")
+		return big.Float{}, errors.New("repo: could not get quoted rate from response")
 	}
 
-	val, ok := rateQuote[quote.Lower()]
+	val, ok := rateQuote[pair.To.ToLower().String()]
 	if !ok {
-		return nil, fmt.Errorf("repo: could not get rate value from reponse")
+		return big.Float{}, errors.New("repo: could not get rate value from response")
 	}
 
-	return big.NewFloat(val.(float64)), nil
-}
+	floatVal, ok := val.(float64)
+	if !ok {
+		return big.Float{}, errors.New("repo: could not get float value from response")
+	}
 
-func (r *Repository) Name() string {
-	return "coingecko"
+	return *big.NewFloat(floatVal), nil
 }

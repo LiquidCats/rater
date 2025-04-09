@@ -7,73 +7,59 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"os"
-	"rater/internal/app/domain/types"
-	"time"
+
+	"github.com/LiquidCats/rater/configs"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/coinapi/data"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/pkg/errors"
 )
 
 type Repository struct {
-	url      string
-	apiToken string
+	cfg configs.CoinApiConfig
 }
 
-type coinApiResponse struct {
-	Time         time.Time `json:"time"`
-	AssetIdBase  string    `json:"asset_id_base"`
-	AssetIdQuote string    `json:"asset_id_quote"`
-	Rate         float64   `json:"rate"`
-}
-
-func NewRepository() *Repository {
-	url := os.Getenv("RATER_COINAPI_URL")
-	apiToken := os.Getenv("RATER_COINAPI_SECRET")
-
+func NewRepository(cfg configs.CoinApiConfig) *Repository {
 	return &Repository{
-		url:      url,
-		apiToken: apiToken,
+		cfg: cfg,
 	}
 }
 
-func (a *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*big.Float, error) {
+func (a *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, error) {
 	url := fmt.Sprintf(
 		"%s/%s/%s",
-		a.url,
-		base.Upper(),
-		quote.Upper(),
+		a.cfg.URL,
+		pair.From.ToUpper(),
+		pair.To.ToUpper(),
 	)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not create request: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not create request")
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-CoinAPI-Key", a.apiToken)
+	req.Header.Set("X-CoinAPI-Key", string(a.cfg.Secret)) //nolint:canonicalheader
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("repo: error making api request: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: error making http request")
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf("repo: error making api request: %s\n", res.Status)
+	if res.StatusCode >= http.StatusBadRequest {
+		return big.Float{}, errors.Errorf("repo: error making http request: %s", res.Status)
 	}
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not read response body: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not read response body")
 	}
 
-	var resp coinApiResponse
+	var resp data.APIResponse
 
 	if err = json.Unmarshal(resBody, &resp); nil != err {
-		return nil, fmt.Errorf("repo: could not parse response: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not parse response")
 	}
 
-	return big.NewFloat(resp.Rate), nil
-}
-
-func (a *Repository) Name() string {
-	return "coinapi"
+	return *big.NewFloat(resp.Rate), nil
 }
