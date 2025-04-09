@@ -4,91 +4,66 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"math/big"
 	"net/http"
-	"os"
-	"rater/internal/app/domain/types"
+
+	"github.com/LiquidCats/rater/configs"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/cex/data"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/pkg/errors"
 )
 
 type Repository struct {
-	url string
+	cfg configs.CexConfig
 }
 
-type requestBody struct {
-	Pairs []string `json:"pairs"`
+func NewRepository(cfg configs.CexConfig) *Repository {
+	return &Repository{cfg: cfg}
 }
 
-type responseBody struct {
-	Ok   string                        `json:"ok"`
-	Data map[string]responseBodyTicker `json:"data"`
-}
-
-type responseBodyTicker struct {
-	LastTradePrice string `json:"lastTradePrice"`
-}
-
-func NewRepository() *Repository {
-	url := os.Getenv("RATER_CEX_URL") // https://trade.cex.io/api/spot/rest-public/get_ticker
-
-	return &Repository{url: url}
-}
-
-func (a *Repository) Get(ctx context.Context, quote types.QuoteCurrency, base types.BaseCurrency) (*big.Float, error) {
-	pair := fmt.Sprintf(
-		"%s-%s",
-		base.Upper(),
-		quote.Upper(),
-	)
-
-	body := requestBody{Pairs: []string{pair}}
+func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, error) {
+	body := data.APIRequest{Pairs: []string{pair.Join("-")}}
 
 	bodyByres, err := json.Marshal(body)
 	if err != nil {
-		return nil, fmt.Errorf("repo: incorrect request body: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: incorrect request body")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.url, bytes.NewBuffer(bodyByres))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.cfg.URL, bytes.NewBuffer(bodyByres))
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not create request: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not create request")
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("repo: error making api request: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: error making http request")
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-		}
-	}(res.Body)
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not read response body: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not read response body")
 	}
 
-	var resp responseBody
+	var resp data.APIResponse
 
 	err = json.Unmarshal(resBody, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not unmarshal response: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not unmarshal response")
 	}
 
-	tickerInfo, ok := resp.Data[pair]
+	tickerInfo, ok := resp.Data[body.Pairs[0]]
 	if !ok {
-		return nil, fmt.Errorf("repo: could not unmarshal response: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not unmarshal response")
 	}
 
-	v, _, err := big.ParseFloat(tickerInfo.LastTradePrice, 10, 0, big.ToNearestEven)
+	v, _, err := big.ParseFloat(tickerInfo.LastTradePrice, 10, 0, big.ToNearestEven) // nolint:mnd
 	if err != nil {
-		return nil, fmt.Errorf("repo: could not parse value: %s\n", err)
+		return big.Float{}, errors.Wrap(err, "repo: could not parse value")
 	}
 
-	return v, nil
-}
-
-func (a *Repository) Name() string {
-	return "cex"
+	return *v, nil
 }

@@ -1,22 +1,30 @@
-version: "3.8"
+x-app-env: &app-env
+  RATER_APP_PORT: 8080
+  RATER_APP_PAIRS: "BTC_USD,BTC_EUR,ETH_USD,ETH_EUR"
+
+  RATER_COINGATE_URL: "https://api.coingate.com/v2/rates/merchant"
+
+  RATER_CEX_URL: "https://trade.cex.io/api/spot/rest-public/get_ticker"
+
+  RATER_COINAPI_URL: "https://rest.coinapi.io/v1/exchangerate"
+  RATER_COINAPI_SECRET: ""
+
+  RATER_COINMARKETCAP_URL: "https://pro-api.coinmarketcap.com/v2/tools/price-conversion"
+  RATER_COINMARKETCAP_SECRET: ""
+
+  RATER_REDIS_ADDRESS: "redis:6379"
+  RATER_REDIS_DB: 0
 
 services:
   dev:
-    image: golang:alpine
+    build:
+      dockerfile: Dockerfile.dev
+      context: .
     working_dir: /app
-    tty: true
-    networks:
-      - rater
-    ports:
-      - "8080:8080"
-    depends_on:
-      - cache
-    env_file: .env
     environment:
-      GOPATH: "/go"
+      <<: *app-env
     volumes:
-      - ~/.go:/go:ro
-      - ./:/app:rw
+      - .:/app
 
   cache:
     image: redis:alpine

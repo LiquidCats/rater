@@ -7,9 +7,8 @@ This microservice is used to get exchange rates for crypto
 ### Configure Env 
 
 ```dotenv
-RATER_PORT=8080
-RATER_BASE_CURRENCIES="BTC,ETH"
-RATER_QUOTE_CURRENCIES="USD,EUR"
+RATER_APP_PORT=8080
+RATER_APP_PAIRS="BTC_USD,BTC_EUR,ETH_USD,ETH_EUR"
 
 RATER_COINGATE_URL="https://api.coingate.com/v2/rates/merchant"
 
@@ -29,13 +28,12 @@ docker compose up --build app
 ### Response
 After running application you can access to endpoint
 ```http request
-GET http://localhost:8080/v1/rate/:base/:quote
+GET http://localhost:8080/v1/rate/{pair}
 
 {
     "data": {
-        "Price": "29295.92969",
-        "base": "BTC",
-        "quote": "USD"
+        "price": "29295.92969",
+        "pair": "BTC_USD",
     },
     "status": "success"
 }
