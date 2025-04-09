@@ -4,21 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"log"
 	"net/http"
-	"rater/configs"
-	"rater/internal/port"
 	"time"
+
+	"github.com/LiquidCats/rater/configs"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
+	"go.uber.org/zap"
 )
 
 type Srv struct {
-	http   *http.Server
-	logger port.Logger
+	http *http.Server
 }
 
-func NewServer(cfg configs.Config, router *gin.Engine, log port.Logger) *Srv {
+func NewServer(cfg configs.AppConfig, router *gin.Engine) *Srv {
 	server := &http.Server{
 		Addr:           fmt.Sprintf("0.0.0.0:%s", cfg.Port),
 		Handler:        router,
@@ -28,25 +28,22 @@ func NewServer(cfg configs.Config, router *gin.Engine, log port.Logger) *Srv {
 	}
 
 	return &Srv{
-		http:   server,
-		logger: log,
+		http: server,
 	}
 }
 
 func (s *Srv) Start(ctx context.Context) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	logger := zerolog.Ctx(ctx)
+	logger.Info().Msg("server: starting server")
 
-	s.logger.Info("server: starting server")
 	if err := s.http.ListenAndServe(); nil != err && !errors.Is(err, http.ErrServerClosed) {
-		s.logger.Error("app: cant start server", zap.Error(err))
-		cancel()
-		return
+		logger.Error().Err(err).Msg("app: cant start server")
 	}
 }
 
 func (s *Srv) Stop(ctx context.Context) {
-	s.logger.Info("server: shutting down server")
+	zerolog.Ctx(ctx).Info().Msg("server: stopping server")
+
 	if err := s.http.Shutdown(ctx); err != nil {
 		log.Fatal("server: server shutdown failed", zap.Error(err))
 	}

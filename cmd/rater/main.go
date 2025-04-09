@@ -2,87 +2,91 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"os/signal"
-	"rater/configs"
-	"rater/internal/adapter/api/middlware"
-	"rater/internal/adapter/api/routes"
-	"rater/internal/adapter/logger"
-	"rater/internal/adapter/repository/api/cex"
-	"rater/internal/adapter/repository/api/coinapi"
-	"rater/internal/adapter/repository/api/coingate"
-	"rater/internal/adapter/repository/api/coingecko"
-	"rater/internal/adapter/repository/api/coinmarketcap"
-	"rater/internal/adapter/repository/cache/redis"
-	httpserver "rater/internal/adapter/server"
-	"rater/internal/app/usecase"
-	"syscall"
 
-	"go.uber.org/zap"
+	"github.com/LiquidCats/graceful"
+	"github.com/LiquidCats/rater/configs"
+	"github.com/LiquidCats/rater/internal/adapter/http/middlware"
+	"github.com/LiquidCats/rater/internal/adapter/http/routes"
+	"github.com/LiquidCats/rater/internal/adapter/http/server"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/cex"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/coinapi"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/coingate"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/coingecko"
+	"github.com/LiquidCats/rater/internal/adapter/repository/api/coinmarketcap"
+	"github.com/LiquidCats/rater/internal/adapter/repository/cache/redis"
+	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/LiquidCats/rater/internal/app/usecase"
+	"github.com/rs/zerolog"
+
+	_ "go.uber.org/automaxprocs"
 )
 
 const app = "rater"
 
 func main() {
-	cfg := configs.Load()
-	//
-	log, err := logger.NewZapLogger(app)
-	if nil != err {
-		panic(fmt.Sprintf("app: cant configure logger - %s", err))
-	}
-	defer func() {
-		_ = log.Sync()
-	}()
-
-	cache, err := redis.NewCacheRepository(cfg.Redis, app)
-	if nil != err {
-		log.Fatal("app: cant connect to cache", zap.Error(err))
-	}
-
-	rateUsecase := usecase.NewRateUsecase(log, cache)
-
-	rateUsecase.SetAdapter(cex.NewRepository())
-	rateUsecase.SetAdapter(coingecko.NewRepository())
-	rateUsecase.SetAdapter(coinmarketcap.NewReposiotry())
-	rateUsecase.SetAdapter(coinapi.NewRepository())
-	rateUsecase.SetAdapter(coingate.NewRepository())
-
-	rootHandler := routes.NewRootHandler()
-	rateHandler := routes.NewRateHandler(rateUsecase)
-
-	baseCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("base", cfg.BaseCurrencies)
-	quoteCurrencyMiddleware := middlware.NewCurrencyParamMiddleware("quote", cfg.QuoteCurrencies)
-
-	router := httpserver.NewRouter(log)
-
-	router.Any("/", rootHandler.GetRoot)
-
-	v1Router := router.Group("/v1")
-	v1Router.GET("/", rootHandler.GetRoot)
-	v1Router.GET(
-		"/rate/:base/:quote",
-		baseCurrencyMiddleware.Handle,
-		quoteCurrencyMiddleware.Handle,
-		rateHandler.GetRate,
-	)
-
-	server := httpserver.NewServer(cfg, router, log)
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go server.Start(ctx)
+	ctx = logger.WithContext(ctx)
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	select {
-	case <-quit:
-		server.Stop(ctx)
-	case <-ctx.Done():
-		log.Info("app: shutting down server...", zap.Error(ctx.Err()))
+	cfg, err := configs.Load(app)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to load config")
 	}
 
-	log.Info("Done")
+	cache, err := redis.NewCacheRepository(cfg.Redis, app)
+	if nil != err {
+		logger.Fatal().Err(err).Msg("app: cant connect to cache")
+	}
+
+	apiRegistry := api.Registry{}
+	apiRegistry.Register(entity.ProviderNameCex, cex.NewRepository(cfg.Cex))
+	apiRegistry.Register(entity.ProviderNameCoinApi, coinapi.NewRepository(cfg.CoinApi))
+	apiRegistry.Register(entity.ProviderNameCoinGate, coingate.NewRepository(cfg.CoinGate))
+	apiRegistry.Register(entity.ProviderNameCoinGecko, coingecko.NewRepository(cfg.CoinGecko))
+	apiRegistry.Register(entity.ProviderNameCoinMarketCap, coinmarketcap.NewReposiotry(cfg.CoinMarketCap))
+
+	rateUsecase := usecase.NewRateUsecase(cache, apiRegistry)
+
+	rootHandler := routes.NewRootHandler()
+	rateHandler := routes.NewRateHandler(rateUsecase)
+
+	baseCurrencyMiddleware := middlware.NewPairValidation(cfg.App.Pairs)
+
+	router := server.NewRouter(&logger)
+
+	router.Any("/", rootHandler.Handle)
+
+	v1Router := router.Group("/v1")
+	v1Router.GET("/", rootHandler.Handle)
+	v1Router.GET(
+		"/rate/:pair",
+		baseCurrencyMiddleware.Handle,
+		rateHandler.Handle,
+	)
+
+	server := server.NewServer(cfg.App, router)
+
+	runners := []graceful.Runner{
+		graceful.Signals,
+		func(ctx context.Context) error {
+			server.Start(ctx)
+			defer server.Stop(ctx)
+
+			return nil
+		},
+	}
+
+	if err := graceful.WaitContext(
+		ctx,
+		runners...,
+	); err != nil {
+		logger.Fatal().Err(err).Msg("server terminated")
+	}
+
+	logger.Info().Msg("application stopped")
 }

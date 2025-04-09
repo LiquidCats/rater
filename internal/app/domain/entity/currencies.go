@@ -39,7 +39,7 @@ func (s CurrencyPairString) ToPair() (Pair, error) {
 
 	return Pair{
 		From: CurrencyISO(parts[0]).ToUpper(),
-		To:   CurrencyISO(parts[1]).ToLower(),
+		To:   CurrencyISO(parts[1]).ToUpper(),
 	}, nil
 }
 
