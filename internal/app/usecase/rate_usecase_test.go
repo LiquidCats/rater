@@ -1,7 +1,6 @@
 package usecase_test
 
 import (
-	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -24,7 +23,7 @@ func TestExchange_Get(t *testing.T) {
 			name: "rate from provider",
 			before: func(t *testing.T) *usecase.RateUsecase {
 				rateCache := mocks.NewRateCache(t)
-				rateApi := mocks.NewRateApi(t)
+				rateAPI := mocks.NewRateApi(t)
 
 				matcher := mock.MatchedBy(func(pair entity.Pair) bool {
 					return pair.From == "USD" && pair.To == "BTC"
@@ -40,10 +39,10 @@ func TestExchange_Get(t *testing.T) {
 					Provider: "test",
 				}, time.Minute*5).Once().Return(nil)
 
-				rateApi.On("GetRate", mock.Anything, matcher).Once().Return(*big.NewFloat(25000.77733333), nil)
+				rateAPI.On("GetRate", mock.Anything, matcher).Once().Return(*big.NewFloat(25000.77733333), nil)
 
 				providers := api.Registry{
-					"test": rateApi,
+					"test": rateAPI,
 				}
 
 				return usecase.NewRateUsecase(rateCache, providers)
@@ -53,7 +52,7 @@ func TestExchange_Get(t *testing.T) {
 			name: "rate from cache",
 			before: func(t *testing.T) *usecase.RateUsecase {
 				rateCache := mocks.NewRateCache(t)
-				rateApi := mocks.NewRateApi(t)
+				rateAPI := mocks.NewRateApi(t)
 
 				matcher := mock.MatchedBy(func(pair entity.Pair) bool {
 					return pair.From == "USD" && pair.To == "BTC"
@@ -69,7 +68,7 @@ func TestExchange_Get(t *testing.T) {
 				}, nil)
 
 				providers := api.Registry{
-					"test": rateApi,
+					"test": rateAPI,
 				}
 
 				return usecase.NewRateUsecase(rateCache, providers)
@@ -80,7 +79,7 @@ func TestExchange_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// arrange
-			ctx := context.Background()
+			ctx := t.Context()
 
 			uc := tt.before(t)
 

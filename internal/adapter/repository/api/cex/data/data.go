@@ -1,10 +1,10 @@
 package data
 
-type ApiRequest struct {
+type APIRequest struct {
 	Pairs []string `json:"pairs"`
 }
 
-type ApiResponse struct {
+type APIResponse struct {
 	Ok   string            `json:"ok"`
 	Data map[string]Ticker `json:"data"`
 }

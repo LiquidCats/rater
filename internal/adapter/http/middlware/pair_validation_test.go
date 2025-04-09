@@ -49,7 +49,6 @@ func TestPairValidationMiddleware_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			router := server.NewRouter(&l)
 
 			handler := middlware.NewPairValidation(allowed)

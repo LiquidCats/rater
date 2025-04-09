@@ -1,3 +1,3 @@
 package data
 
-type ApiResponse map[string]interface{}
+type APIResponse map[string]interface{}

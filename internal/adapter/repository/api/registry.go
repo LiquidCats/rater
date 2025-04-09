@@ -5,11 +5,11 @@ import (
 	"github.com/LiquidCats/rater/internal/app/port/adapter/repository"
 )
 
-type Registry map[entity.ProviderName]repository.RateApi
+type Registry map[entity.ProviderName]repository.RateAPI
 
-func (r Registry) Register(provider entity.ProviderName, rateApi repository.RateApi) {
+func (r Registry) Register(provider entity.ProviderName, rateAPI repository.RateAPI) {
 	_, ok := r[provider]
 	if !ok {
-		r[provider] = rateApi
+		r[provider] = rateAPI
 	}
 }

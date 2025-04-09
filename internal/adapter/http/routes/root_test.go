@@ -24,5 +24,5 @@ func TestRootHandler_Handle(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, `{"version":"v1"}`, w.Body.String())
+	assert.JSONEq(t, `{"version":"v1"}`, w.Body.String())
 }

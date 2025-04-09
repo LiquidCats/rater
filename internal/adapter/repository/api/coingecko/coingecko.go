@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 
@@ -47,13 +46,11 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 	if err != nil {
 		return big.Float{}, errors.Wrap(err, "repo: error making http request")
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-		}
-	}(res.Body)
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
-	var response data.ApiResponse
+	var response data.APIResponse
 
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
@@ -72,8 +69,13 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 
 	val, ok := rateQuote[pair.To.ToLower().String()]
 	if !ok {
-		return big.Float{}, errors.New("repo: could not get rate value from reponse")
+		return big.Float{}, errors.New("repo: could not get rate value from response")
 	}
 
-	return *big.NewFloat(val.(float64)), nil
+	floatVal, ok := val.(float64)
+	if !ok {
+		return big.Float{}, errors.New("repo: could not get float value from response")
+	}
+
+	return *big.NewFloat(floatVal), nil
 }

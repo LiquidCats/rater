@@ -12,7 +12,7 @@ type Config struct {
 
 	CoinGate      CoinGateConfig      `yaml:"coingate" envconfig:"COINGATE"`
 	Cex           CexConfig           `yaml:"cex" envconfig:"CEX"`
-	CoinApi       CoinApiConfig       `yaml:"coin_api" envconfig:"COIN_API"`
+	CoinApi       CoinApiConfig       `yaml:"coin_api" envconfig:"COIN_API"` // nolint:revive
 	CoinMarketCap CoinMarketCapConfig `yaml:"coin_market_cap" envconfig:"COIN_MARKET_CAP"`
 	CoinGecko     CoinGeckoConfig     `yaml:"coin_gecko" envconfig:"COIN_GECKO"`
 }
@@ -30,7 +30,7 @@ type CexConfig struct {
 	URL string `yaml:"url" envconfig:"URL"`
 }
 
-type CoinApiConfig struct {
+type CoinApiConfig struct { // nolint:revive
 	URL    string           `yaml:"url" envconfig:"URL"`
 	Secret sensitive.String `yaml:"secret" envconfig:"SECRET"`
 }

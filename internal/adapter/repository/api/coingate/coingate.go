@@ -39,18 +39,16 @@ func (c *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 	if err != nil {
 		return big.Float{}, errors.Wrap(err, "repo: error making http request")
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-		}
-	}(res.Body)
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return big.Float{}, errors.Wrap(err, "repo: could not read response body")
 	}
 
-	v, _, err := big.ParseFloat(string(resBody), 10, 0, big.ToNearestEven)
+	v, _, err := big.ParseFloat(string(resBody), 10, 0, big.ToNearestEven) // nolint:mnd
 	if err != nil {
 		return big.Float{}, errors.Wrap(err, "repo: could not parse response")
 	}
