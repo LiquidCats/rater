@@ -1,34 +1,43 @@
-package configs
+package configs_test
 
 import (
 	"os"
 	"testing"
 
+	"github.com/LiquidCats/rater/configs"
 	"github.com/go-playground/sensitive"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetSecretFromFile(t *testing.T) {
 	t.Run("valid file", func(t *testing.T) {
 		// Create a temporary file with a known secret
 		content := "my-secret-value"
-		tmpFile, err := os.CreateTemp("", "secret-*")
-		assert.NoError(t, err)
-		defer os.Remove(tmpFile.Name()) // Clean up
+		tmpFile, err := os.CreateTemp(t.TempDir(), "secret-*")
+		require.NoError(t, err)
+		defer os.Remove(tmpFile.Name())
 
-		_, err = tmpFile.Write([]byte(content))
-		assert.NoError(t, err)
+		_, err = tmpFile.WriteString(content)
+		require.NoError(t, err)
 		defer tmpFile.Close()
 
-		// Call the function
-		secret, err := getSecretFromFile(tmpFile.Name())
-		assert.NoError(t, err)
+		cfg := configs.CoinMarketCapConfig{
+			SecretFile: tmpFile.Name(),
+		}
+
+		secret, err := cfg.GetSecret()
+		require.NoError(t, err)
 		assert.Equal(t, sensitive.String(content), secret)
 	})
 
 	t.Run("file does not exist", func(t *testing.T) {
-		secret, err := getSecretFromFile("nonexistent.file")
-		assert.Error(t, err)
+		cfg := configs.CoinMarketCapConfig{
+			SecretFile: "nonexistent.file",
+		}
+
+		secret, err := cfg.GetSecret()
+		require.Error(t, err)
 		assert.Equal(t, sensitive.String(""), secret)
 	})
 }
