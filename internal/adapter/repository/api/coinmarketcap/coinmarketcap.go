@@ -35,8 +35,13 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 		return big.Float{}, errors.Wrap(err, "repo: could not create request")
 	}
 
+	secret, err := r.cfg.GetSecret()
+	if err != nil {
+		return big.Float{}, errors.Wrap(err, "repo: could not get secret")
+	}
+
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("X-CMC_PRO_API_KEY", string(r.cfg.Secret)) //nolint:canonicalheader
+	req.Header.Set("X-CMC_PRO_API_KEY", string(secret)) //nolint:canonicalheader
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
