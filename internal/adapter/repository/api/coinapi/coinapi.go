@@ -24,10 +24,10 @@ func NewRepository(cfg configs.CoinApiConfig) *Repository {
 	}
 }
 
-func (a *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, error) {
+func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, error) {
 	url := fmt.Sprintf(
 		"%s/%s/%s",
-		a.cfg.URL,
+		r.cfg.URL,
 		pair.From.ToUpper(),
 		pair.To.ToUpper(),
 	)
@@ -37,14 +37,21 @@ func (a *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 		return big.Float{}, errors.Wrap(err, "repo: could not create request")
 	}
 
+	secret, err := r.cfg.GetSecret()
+	if err != nil {
+		return big.Float{}, errors.Wrap(err, "repo: could not get secret")
+	}
+
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-CoinAPI-Key", string(a.cfg.Secret)) //nolint:canonicalheader
+	req.Header.Set("X-CoinAPI-Key", string(secret)) //nolint:canonicalheader
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return big.Float{}, errors.Wrap(err, "repo: error making http request")
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	if res.StatusCode >= http.StatusBadRequest {
 		return big.Float{}, errors.Errorf("repo: error making http request: %s", res.Status)

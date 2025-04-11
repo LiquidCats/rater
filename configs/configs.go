@@ -1,7 +1,10 @@
 package configs
 
 import (
+	"os"
+
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/pkg/errors"
 
 	"github.com/go-playground/sensitive"
 )
@@ -31,13 +34,31 @@ type CexConfig struct {
 }
 
 type CoinApiConfig struct { // nolint:revive
-	URL    string           `yaml:"url" envconfig:"URL"`
-	Secret sensitive.String `yaml:"secret" envconfig:"SECRET"`
+	URL        string           `yaml:"url" envconfig:"URL"`
+	Secret     sensitive.String `yaml:"secret" envconfig:"SECRET"`
+	SecretFile string           `yaml:"secret_file" envconfig:"SECRET_FILE"`
+}
+
+func (c CoinApiConfig) GetSecret() (sensitive.String, error) {
+	if len(c.Secret) > 0 {
+		return c.Secret, nil
+	}
+
+	return getSecretFromFile(c.SecretFile)
 }
 
 type CoinMarketCapConfig struct {
-	URL    string           `yaml:"url" envconfig:"URL"`
-	Secret sensitive.String `yaml:"secret" envconfig:"SECRET"`
+	URL        string           `yaml:"url" envconfig:"URL"`
+	Secret     sensitive.String `yaml:"secret" envconfig:"SECRET"`
+	SecretFile string           `yaml:"secret_file" envconfig:"SECRET_FILE"`
+}
+
+func (c CoinMarketCapConfig) GetSecret() (sensitive.String, error) {
+	if len(c.Secret) > 0 {
+		return c.Secret, nil
+	}
+
+	return getSecretFromFile(c.SecretFile)
 }
 
 type CoinGeckoConfig struct {
@@ -48,4 +69,13 @@ type RedisConfig struct {
 	Address  string
 	Password sensitive.String
 	DB       int
+}
+
+func getSecretFromFile(filePath string) (sensitive.String, error) {
+	b, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", errors.Wrapf(err, "coinMarketCapConfig: couldn't read secret file")
+	}
+
+	return sensitive.String(b), nil
 }
