@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/LiquidCats/rater/internal/adapter/repository/api"
@@ -10,6 +9,7 @@ import (
 	domain "github.com/LiquidCats/rater/internal/app/domain/errors"
 	"github.com/LiquidCats/rater/internal/app/port/adapter/repository"
 	"github.com/rs/zerolog"
+	"github.com/shopspring/decimal"
 )
 
 type RateUsecase struct {
@@ -28,21 +28,22 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 	var (
 		rate *entity.Rate
 
-		price    big.Float
+		price    decimal.Decimal
 		provider entity.ProviderName
 	)
 
 	logger := zerolog.Ctx(ctx).
 		With().
-		Str("name", "user.get_rate").
+		Str("name", "use_case.get_rate").
+		Any("pair", pair).
 		Stack().
 		Logger()
 
+	logger.Debug().Msg("get rate")
+
 	rate, err := e.cache.GetRate(ctx, pair)
 	if err != nil {
-		logger.Error().Err(err).Msg("cant get rate value from cache")
-
-		return nil, err
+		logger.Error().Stack().Err(err).Msg("cant get rate value from cache")
 	}
 
 	if rate != nil {
@@ -56,18 +57,23 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 		if err != nil {
 			logger.Error().
 				Err(err).
-				Any("pair", pair).
+				Stack().
 				Any("provider", provider).
-				Msg("usecase: cant get rate")
+				Msg("cant get rate")
 			continue
 		}
 
-		if price.Cmp(big.NewFloat(0)) == 0 {
-			continue
+		if !price.IsZero() {
+			break
 		}
 	}
 
-	if price.Cmp(big.NewFloat(0)) == 0 {
+	if price.IsZero() {
+		logger.Error().
+			Err(err).
+			Stack().
+			Any("provider", provider).
+			Msg("rate not available")
 		return nil, domain.ErrRateNotAvailable
 	}
 
@@ -77,12 +83,12 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 		Provider: provider,
 	}
 
-	if err = e.cache.PutRate(ctx, *rate, 5*time.Minute); nil != err { // nolint:mnd
+	if err = e.cache.PutRate(ctx, *rate, 5*time.Second); nil != err { // nolint:mnd
 		logger.Error().
 			Err(err).
-			Any("pair", pair).
+			Stack().
 			Any("provider", provider).
-			Msg("usecase: cant put rate value into cache")
+			Msg("cant put rate value into cache")
 
 		return nil, err
 	}

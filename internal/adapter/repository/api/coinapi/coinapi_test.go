@@ -1,7 +1,6 @@
 package coinapi_test
 
 import (
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,5 +36,5 @@ func TestCoinApiRepository_Get(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rate)
 
-	require.Equal(t, rate.String(), big.NewFloat(29295.929694597355).String())
+	require.Equal(t, "29295.929694597355", rate.String())
 }

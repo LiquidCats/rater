@@ -1,9 +1,11 @@
 package entity
 
-import "math/big"
+import (
+	"github.com/shopspring/decimal"
+)
 
 type Rate struct {
-	Pair     Pair         `json:"pair"`
-	Price    big.Float    `json:"price"`
-	Provider ProviderName `json:"provider"`
+	Pair     Pair            `json:"pair"`
+	Price    decimal.Decimal `json:"price"`
+	Provider ProviderName    `json:"provider"`
 }

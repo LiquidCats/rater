@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 
 	"github.com/LiquidCats/rater/configs"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 )
 
 type Repository struct {
@@ -22,7 +22,7 @@ func NewRepository(cfg configs.CoinGateConfig) *Repository {
 	}
 }
 
-func (c *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, error) {
+func (c *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Decimal, error) {
 	url := fmt.Sprintf(
 		"%s/%s/%s",
 		c.cfg.URL,
@@ -32,12 +32,12 @@ func (c *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return big.Float{}, errors.Wrap(err, "repo: could not create request")
+		return decimal.Zero, errors.Wrap(err, "repo: could not create request")
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return big.Float{}, errors.Wrap(err, "repo: error making http request")
+		return decimal.Zero, errors.Wrap(err, "repo: error making http request")
 	}
 	defer func() {
 		_ = res.Body.Close()
@@ -45,17 +45,13 @@ func (c *Repository) GetRate(ctx context.Context, pair entity.Pair) (big.Float, 
 
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
-		return big.Float{}, errors.Wrap(err, "repo: could not read response body")
+		return decimal.Zero, errors.Wrap(err, "repo: could not read response body")
 	}
 
-	v, _, err := big.ParseFloat(string(resBody), 10, 0, big.ToNearestEven) // nolint:mnd
+	value, err := decimal.NewFromString(string(resBody))
 	if err != nil {
-		return big.Float{}, errors.Wrap(err, "repo: could not parse response")
+		return decimal.Zero, errors.Wrap(err, "repo: could not parse response")
 	}
 
-	return *v, nil
-}
-
-func (c *Repository) Name() entity.ProviderName {
-	return "coingate"
+	return value, nil
 }

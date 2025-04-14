@@ -1,7 +1,6 @@
 package usecase_test
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/LiquidCats/rater/internal/app/usecase"
 	"github.com/LiquidCats/rater/test/mocks"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -23,7 +23,7 @@ func TestExchange_Get(t *testing.T) {
 			name: "rate from provider",
 			before: func(t *testing.T) *usecase.RateUsecase {
 				rateCache := mocks.NewRateCache(t)
-				rateAPI := mocks.NewRateApi(t)
+				rateAPI := mocks.NewRateAPI(t)
 
 				matcher := mock.MatchedBy(func(pair entity.Pair) bool {
 					return pair.From == "USD" && pair.To == "BTC"
@@ -35,11 +35,11 @@ func TestExchange_Get(t *testing.T) {
 						From: "USD",
 						To:   "BTC",
 					},
-					Price:    *big.NewFloat(25000.77733333),
+					Price:    decimal.NewFromFloat(25000.77733333),
 					Provider: "test",
-				}, time.Minute*5).Once().Return(nil)
+				}, time.Second*5).Once().Return(nil)
 
-				rateAPI.On("GetRate", mock.Anything, matcher).Once().Return(*big.NewFloat(25000.77733333), nil)
+				rateAPI.On("GetRate", mock.Anything, matcher).Once().Return(decimal.NewFromFloat(25000.77733333), nil)
 
 				providers := api.Registry{
 					"test": rateAPI,
@@ -52,7 +52,7 @@ func TestExchange_Get(t *testing.T) {
 			name: "rate from cache",
 			before: func(t *testing.T) *usecase.RateUsecase {
 				rateCache := mocks.NewRateCache(t)
-				rateAPI := mocks.NewRateApi(t)
+				rateAPI := mocks.NewRateAPI(t)
 
 				matcher := mock.MatchedBy(func(pair entity.Pair) bool {
 					return pair.From == "USD" && pair.To == "BTC"
@@ -63,7 +63,7 @@ func TestExchange_Get(t *testing.T) {
 						From: "USD",
 						To:   "BTC",
 					},
-					Price:    *big.NewFloat(25000.77733333),
+					Price:    decimal.NewFromFloat(25000.77733333),
 					Provider: "test",
 				}, nil)
 
@@ -95,7 +95,7 @@ func TestExchange_Get(t *testing.T) {
 
 			assert.Equal(t, "BTC", string(rate.Pair.To))
 			assert.Equal(t, "USD", string(rate.Pair.From))
-			assert.Equal(t, big.NewFloat(25000.77733333).String(), rate.Price.String())
+			assert.Equal(t, "25000.77733333", rate.Price.String())
 		})
 	}
 }

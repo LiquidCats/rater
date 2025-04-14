@@ -5,8 +5,6 @@ type APIResponse struct {
 }
 
 type Conversion struct {
-	ID     string           `json:"id"`
-	Amount uint             `json:"amount"`
 	Name   string           `json:"name"`
 	Symbol string           `json:"symbol"`
 	Quote  map[string]Price `json:"quote"`

@@ -1,7 +1,6 @@
 package coingecko_test
 
 import (
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -35,5 +34,5 @@ func TestCoinGateRepository_Get(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rate)
 
-	require.Equal(t, rate.String(), big.NewFloat(60715.43364698).String())
+	require.Equal(t, "60715.43364698", rate.String())
 }

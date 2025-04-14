@@ -36,14 +36,14 @@ func NewCacheRepository(cfg configs.RedisConfig, baseKey string) (*CacheReposito
 }
 
 func (c *CacheRepository) GetRate(ctx context.Context, pair entity.Pair) (*entity.Rate, error) {
-	b, err := c.client.Get(ctx, c.makeRateKey(pair)).Bytes()
-	if err != nil {
-		return nil, errors.Wrap(err, "get rate from cache")
+	b := c.client.Get(ctx, c.makeRateKey(pair)).Val()
+	if len(b) == 0 {
+		return nil, nil // nolint:nilnil
 	}
 
 	var rate entity.Rate
-	decoder := json.NewDecoder(bytes.NewReader(b))
-	if err = decoder.Decode(&rate); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader([]byte(b)))
+	if err := decoder.Decode(&rate); err != nil {
 		return nil, errors.Wrap(err, "decode rate from cache")
 	}
 
@@ -69,8 +69,8 @@ func (c *CacheRepository) makeRateKey(pair entity.Pair) string {
 		fmt.Sprintf(
 			"%s:rate:from:%s:to:%s",
 			c.baseKey,
-			pair.From,
-			pair.To,
+			pair.From.ToLower(),
+			pair.To.ToUpper(),
 		),
 	)
 }

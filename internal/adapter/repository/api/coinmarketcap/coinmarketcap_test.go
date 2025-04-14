@@ -1,7 +1,6 @@
 package coinmarketcap_test
 
 import (
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -36,5 +35,5 @@ func TestCoinmarketcapRepository_Get(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rate)
 
-	assert.Equal(t, big.NewFloat(381442).String(), rate.String())
+	assert.Equal(t, "381442", rate.String())
 }

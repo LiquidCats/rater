@@ -9,7 +9,6 @@ import (
 	"github.com/LiquidCats/rater/internal/adapter/http/middlware"
 	"github.com/LiquidCats/rater/internal/adapter/http/server"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -41,15 +40,13 @@ func TestPairValidationMiddleware_Handle(t *testing.T) {
 		},
 	}
 
-	l := zerolog.New(zerolog.NewTestWriter(t))
-
 	allowed := []entity.CurrencyPairString{
 		"BTC_USD",
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := server.NewRouter(&l)
+			router := server.NewRouter()
 
 			handler := middlware.NewPairValidation(allowed)
 
