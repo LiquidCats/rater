@@ -63,13 +63,9 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 			continue
 		}
 
-		if price.IsZero() {
-			logger.Error().Any("provider", provider).Msg("provider gave zero value")
-			continue
-		} else {
+		if !price.IsZero() {
 			break
 		}
-
 	}
 
 	if price.IsZero() {

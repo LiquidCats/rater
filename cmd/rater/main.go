@@ -30,7 +30,7 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 	logger := zerolog.New(os.Stdout).With().Caller().Timestamp().Logger()
-	zerolog.DefaultContextLogger = &logger
+	zerolog.DefaultContextLogger = &logger // nolint:reassign
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

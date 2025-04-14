@@ -38,7 +38,7 @@ func NewCacheRepository(cfg configs.RedisConfig, baseKey string) (*CacheReposito
 func (c *CacheRepository) GetRate(ctx context.Context, pair entity.Pair) (*entity.Rate, error) {
 	b := c.client.Get(ctx, c.makeRateKey(pair)).Val()
 	if len(b) == 0 {
-		return nil, nil
+		return nil, nil // nolint:nilnil
 	}
 
 	var rate entity.Rate
