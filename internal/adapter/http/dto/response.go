@@ -30,7 +30,7 @@ func NewFailResponse(data interface{}) gin.H {
 func NewErrorResponse(err error) gin.H {
 	return gin.H{
 		"status":  StatusError,
-		"message": err,
+		"message": err.Error(),
 	}
 }
 
@@ -41,7 +41,7 @@ func NewRootResponse(version string) gin.H {
 func NewRateResponse(rate *entity.Rate) gin.H {
 	return NewSuccessResponse(gin.H{
 		"pair":  rate.Pair.ToCurrencyPairString().ToUpper(),
-		"price": rate.Price,
+		"price": rate.Price.String(),
 	})
 }
 

@@ -2,17 +2,19 @@ x-app-env: &app-env
   RATER_APP_PORT: 8080
   RATER_APP_PAIRS: "BTC_USD,BTC_EUR,ETH_USD,ETH_EUR"
 
-  RATER_COINGATE_URL: "https://api.coingate.com/v2/rates/merchant"
+  RATER_COIN_GATE_URL: "https://api.coingate.com/v2/rates/merchant"
 
   RATER_CEX_URL: "https://trade.cex.io/api/spot/rest-public/get_ticker"
 
-  RATER_COINAPI_URL: "https://rest.coinapi.io/v1/exchangerate"
-  RATER_COINAPI_SECRET: ""
+  RATER_COIN_API_URL: "https://rest.coinapi.io/v1/exchangerate"
+  RATER_COIN_API_SECRET: "***REMOVED***"
 
-  RATER_COINMARKETCAP_URL: "https://pro-api.coinmarketcap.com/v2/tools/price-conversion"
-  RATER_COINMARKETCAP_SECRET: ""
+  RATER_COIN_MARKET_CAP_URL: "https://pro-api.coinmarketcap.com/v1/tools/price-conversion"
+  RATER_COIN_MARKET_CAP_SECRET: "***REMOVED***"
 
-  RATER_REDIS_ADDRESS: "redis:6379"
+  RATER_COIN_GECKO_URL: "https://api.coingecko.com/api/v3/simple/price"
+
+  RATER_REDIS_ADDRESS: "cache:6379"
   RATER_REDIS_DB: 0
 
 services:
@@ -23,6 +25,10 @@ services:
     working_dir: /app
     environment:
       <<: *app-env
+    networks:
+      - rater
+    ports:
+      - "8080:8080"
     volumes:
       - .:/app
 
@@ -35,4 +41,3 @@ services:
 
 networks:
   rater:
-    external: true

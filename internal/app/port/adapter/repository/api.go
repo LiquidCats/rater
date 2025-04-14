@@ -2,11 +2,11 @@ package repository
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/shopspring/decimal"
 )
 
 type RateAPI interface {
-	GetRate(ctx context.Context, pair entity.Pair) (big.Float, error)
+	GetRate(ctx context.Context, pair entity.Pair) (decimal.Decimal, error)
 }

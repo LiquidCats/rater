@@ -7,14 +7,11 @@ import (
 
 	"github.com/LiquidCats/rater/internal/adapter/http/routes"
 	"github.com/LiquidCats/rater/internal/adapter/http/server"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRootHandler_Handle(t *testing.T) {
-	l := zerolog.New(zerolog.NewTestWriter(t))
-
-	router := server.NewRouter(&l)
+	router := server.NewRouter()
 	handler := routes.NewRootHandler()
 
 	router.GET("/", handler.Handle)

@@ -27,7 +27,10 @@ import (
 const app = "rater"
 
 func main() {
-	logger := zerolog.New(os.Stdout).With().Stack().Caller().Timestamp().Logger()
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
+	logger := zerolog.New(os.Stdout).With().Caller().Timestamp().Logger()
+	zerolog.DefaultContextLogger = &logger
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -36,12 +39,12 @@ func main() {
 
 	cfg, err := configs.Load(app)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to load config")
+		logger.Fatal().Err(err).Stack().Msg("failed to load config")
 	}
 
 	cache, err := redis.NewCacheRepository(cfg.Redis, app)
 	if nil != err {
-		logger.Fatal().Err(err).Msg("app: cant connect to cache")
+		logger.Fatal().Err(err).Stack().Msg("app: cant connect to cache")
 	}
 
 	apiRegistry := api.Registry{}
@@ -58,7 +61,7 @@ func main() {
 
 	baseCurrencyMiddleware := middlware.NewPairValidation(cfg.App.Pairs)
 
-	router := server.NewRouter(&logger)
+	router := server.NewRouter()
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 
@@ -88,7 +91,7 @@ func main() {
 		ctx,
 		runners...,
 	); err != nil {
-		logger.Fatal().Err(err).Msg("server terminated")
+		logger.Fatal().Err(err).Stack().Msg("server terminated")
 	}
 
 	logger.Info().Msg("application stopped")

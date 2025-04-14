@@ -6,6 +6,7 @@ import (
 	"github.com/LiquidCats/rater/internal/adapter/http/dto"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/LiquidCats/rater/internal/app/usecase"
+	"github.com/rs/zerolog"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,16 +24,21 @@ func NewRateHandler(usecase *usecase.RateUsecase) *RateHandler {
 func (r *RateHandler) Handle(ctx *gin.Context) {
 	pairStr := entity.CurrencyPairString(ctx.Param("pair"))
 
+	logger := zerolog.Ctx(ctx.Request.Context()).With().Any("pair", pairStr).Logger()
+
 	pair, err := pairStr.ToPair()
 	if err != nil {
+		logger.Error().Err(err).Msg("invalid pair")
+
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.NewErrorResponse(err))
 		return
 	}
 
 	rate, err := r.usecase.GetRate(ctx, pair)
 	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.NewErrorResponse(err))
+		logger.Error().Err(err).Msg("invalid rate")
 
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.NewErrorResponse(err))
 		return
 	}
 
