@@ -10,7 +10,7 @@ func NewRouter(logger *zerolog.Logger) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery(), gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 		logger.Info().
-			Int("method", param.StatusCode).
+			Int("code", param.StatusCode).
 			Str("method", param.Method).
 			Str("path", param.Path).
 			Str("client_ip", param.ClientIP).
