@@ -18,6 +18,7 @@ import (
 	"github.com/LiquidCats/rater/internal/adapter/repository/cache/redis"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/LiquidCats/rater/internal/app/usecase"
+	"github.com/gin-gonic/contrib/gzip"
 	"github.com/rs/zerolog"
 
 	_ "go.uber.org/automaxprocs"
@@ -26,7 +27,7 @@ import (
 const app = "rater"
 
 func main() {
-	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	logger := zerolog.New(os.Stdout).With().Stack().Caller().Timestamp().Logger()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -59,6 +60,8 @@ func main() {
 
 	router := server.NewRouter(&logger)
 
+	router.Use(gzip.Gzip(gzip.DefaultCompression))
+
 	router.Any("/", rootHandler.Handle)
 
 	v1Router := router.Group("/v1")
@@ -69,13 +72,13 @@ func main() {
 		rateHandler.Handle,
 	)
 
-	server := server.NewServer(cfg.App, router)
+	srv := server.NewServer(cfg.App, router)
 
 	runners := []graceful.Runner{
 		graceful.Signals,
 		func(ctx context.Context) error {
-			server.Start(ctx)
-			defer server.Stop(ctx)
+			srv.Start(ctx)
+			defer srv.Stop(ctx)
 
 			return nil
 		},

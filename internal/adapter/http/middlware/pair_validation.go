@@ -25,7 +25,7 @@ func (m *PairValidationMiddleware) Handle(ctx *gin.Context) {
 
 	if len(m.allowed) == 0 {
 		m.setValidationError(ctx, "no allowed pairs")
-		ctx.Abort()
+		return
 	}
 
 	if pair == "" {
@@ -35,19 +35,16 @@ func (m *PairValidationMiddleware) Handle(ctx *gin.Context) {
 	}
 	if len(pair) < 7 { // nolint:mnd
 		m.setValidationError(ctx, "should be 7 characters long at least")
-		ctx.Abort()
 		return
 	}
 
 	if pair != strings.ToUpper(pair) {
 		m.setValidationError(ctx, "should be uppercase")
-		ctx.Abort()
 		return
 	}
 
 	if !slices.Contains(m.allowed, entity.CurrencyPairString(pair)) {
 		m.setValidationError(ctx, "not allowed")
-		ctx.Abort()
 		return
 	}
 
@@ -55,7 +52,7 @@ func (m *PairValidationMiddleware) Handle(ctx *gin.Context) {
 }
 
 func (m *PairValidationMiddleware) setValidationError(ctx *gin.Context, text ...string) {
-	ctx.JSON(
+	ctx.AbortWithStatusJSON(
 		http.StatusUnprocessableEntity,
 		dto.NewValidationErrorResponse(
 			"pair",

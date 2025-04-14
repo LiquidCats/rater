@@ -41,6 +41,8 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 	rate, err := e.cache.GetRate(ctx, pair)
 	if err != nil {
 		logger.Error().Err(err).Msg("cant get rate value from cache")
+
+		return nil, err
 	}
 
 	if rate != nil {
@@ -81,6 +83,8 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 			Any("pair", pair).
 			Any("provider", provider).
 			Msg("usecase: cant put rate value into cache")
+
+		return nil, err
 	}
 
 	return rate, nil
