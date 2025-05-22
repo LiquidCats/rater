@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	http2 "github.com/LiquidCats/rater/internal/adapter/http"
 	"github.com/LiquidCats/rater/internal/adapter/http/middlware"
-	"github.com/LiquidCats/rater/internal/adapter/http/server"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +46,7 @@ func TestPairValidationMiddleware_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := server.NewRouter()
+			router := http2.NewRouter()
 
 			handler := middlware.NewPairValidation(allowed)
 

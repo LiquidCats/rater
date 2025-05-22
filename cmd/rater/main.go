@@ -6,9 +6,9 @@ import (
 
 	"github.com/LiquidCats/graceful"
 	"github.com/LiquidCats/rater/configs"
+	"github.com/LiquidCats/rater/internal/adapter/http"
 	"github.com/LiquidCats/rater/internal/adapter/http/middlware"
 	"github.com/LiquidCats/rater/internal/adapter/http/routes"
-	"github.com/LiquidCats/rater/internal/adapter/http/server"
 	"github.com/LiquidCats/rater/internal/adapter/repository/api"
 	"github.com/LiquidCats/rater/internal/adapter/repository/api/cex"
 	"github.com/LiquidCats/rater/internal/adapter/repository/api/coinapi"
@@ -18,7 +18,6 @@ import (
 	"github.com/LiquidCats/rater/internal/adapter/repository/cache/redis"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/LiquidCats/rater/internal/app/usecase"
-	"github.com/gin-gonic/contrib/gzip"
 	"github.com/rs/zerolog"
 
 	_ "go.uber.org/automaxprocs"
@@ -27,8 +26,6 @@ import (
 const app = "rater"
 
 func main() {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-
 	logger := zerolog.New(os.Stdout).With().Caller().Timestamp().Logger()
 	zerolog.DefaultContextLogger = &logger // nolint:reassign
 
@@ -41,6 +38,8 @@ func main() {
 	if err != nil {
 		logger.Fatal().Err(err).Stack().Msg("failed to load config")
 	}
+
+	zerolog.SetGlobalLevel(cfg.App.LogLevel)
 
 	cache, err := redis.NewCacheRepository(cfg.Redis, app)
 	if nil != err {
@@ -61,9 +60,7 @@ func main() {
 
 	baseCurrencyMiddleware := middlware.NewPairValidation(cfg.App.Pairs)
 
-	router := server.NewRouter()
-
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
+	router := http.NewRouter()
 
 	router.Any("/", rootHandler.Handle)
 
@@ -75,16 +72,9 @@ func main() {
 		rateHandler.Handle,
 	)
 
-	srv := server.NewServer(cfg.App, router)
-
 	runners := []graceful.Runner{
 		graceful.Signals,
-		func(ctx context.Context) error {
-			srv.Start(ctx)
-			defer srv.Stop(ctx)
-
-			return nil
-		},
+		graceful.ServerRunner(router, cfg.HTTP),
 	}
 
 	if err = graceful.WaitContext(
