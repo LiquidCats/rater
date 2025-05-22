@@ -6,7 +6,6 @@ WORKDIR /app
 
 ADD ./ /app
 
-ENV GOFLAGS="-buildmode=pie"
 RUN go mod download
 RUN go build -o main ./cmd/rater/main.go
 
