@@ -3,15 +3,18 @@ package configs
 import (
 	"os"
 
+	"github.com/LiquidCats/graceful"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 
 	"github.com/go-playground/sensitive"
 )
 
 type Config struct {
-	App   AppConfig   `yaml:"app" envconfig:"APP"`
-	Redis RedisConfig `yaml:"redis" envconfig:"REDIS"`
+	App   AppConfig           `yaml:"app" envconfig:"APP"`
+	Redis RedisConfig         `yaml:"redis" envconfig:"REDIS"`
+	HTTP  graceful.HttpConfig `yaml:"http" envconfig:"HTTP"`
 
 	CoinGate      CoinGateConfig      `yaml:"coingate" envconfig:"COIN_GATE"`
 	Cex           CexConfig           `yaml:"cex" envconfig:"CEX"`
@@ -21,6 +24,8 @@ type Config struct {
 }
 
 type AppConfig struct {
+	LogLevel zerolog.Level `envconfig:"LOG_LEVEL" default:"info"`
+
 	Port  string `default:"8080"`
 	Pairs []entity.CurrencyPairString
 }

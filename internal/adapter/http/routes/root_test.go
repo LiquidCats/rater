@@ -5,13 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	http2 "github.com/LiquidCats/rater/internal/adapter/http"
 	"github.com/LiquidCats/rater/internal/adapter/http/routes"
-	"github.com/LiquidCats/rater/internal/adapter/http/server"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRootHandler_Handle(t *testing.T) {
-	router := server.NewRouter()
+	router := http2.NewRouter()
 	handler := routes.NewRootHandler()
 
 	router.GET("/", handler.Handle)

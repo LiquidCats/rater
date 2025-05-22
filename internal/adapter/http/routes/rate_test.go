@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	http2 "github.com/LiquidCats/rater/internal/adapter/http"
 	"github.com/LiquidCats/rater/internal/adapter/http/routes"
-	"github.com/LiquidCats/rater/internal/adapter/http/server"
 	"github.com/LiquidCats/rater/internal/adapter/repository/api"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/LiquidCats/rater/internal/app/usecase"
@@ -43,7 +43,7 @@ func TestRateHandler_Handle(t *testing.T) {
 	})
 	handler := routes.NewRateHandler(useCase)
 
-	router := server.NewRouter()
+	router := http2.NewRouter()
 
 	router.GET("/rate/:pair", handler.Handle)
 
