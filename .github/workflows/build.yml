@@ -7,6 +7,10 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   code-style:
     uses: ./.github/workflows/code-style.yml
