@@ -50,7 +50,6 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 		With().
 		Str("name", "use_case.get_rate").
 		Any("pair", pair).
-		Stack().
 		Logger()
 
 	logger.Debug().Msg("get rate")
@@ -81,7 +80,6 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 
 			logger.Error().
 				Any("err", eris.ToJSON(err, true)).
-				Stack().
 				Any("provider", name).
 				Msg("cant get rate")
 			continue
@@ -96,8 +94,7 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 		e.metrics.providerErrRate.Inc(-1, provider)
 
 		logger.Error().
-			Err(err).
-			Stack().
+			Any("err", eris.ToJSON(err, true)).
 			Any("provider", provider).
 			Msg("rate not available")
 		return nil, domain.ErrRateNotAvailable
@@ -111,8 +108,7 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 
 	if err = e.cache.PutRate(ctx, *rate, 5*time.Second); nil != err { // nolint:mnd
 		logger.Error().
-			Err(err).
-			Stack().
+			Any("err", eris.ToJSON(err, true)).
 			Any("provider", provider).
 			Msg("cant put rate value into cache")
 

@@ -6,6 +6,7 @@ import (
 	"github.com/LiquidCats/rater/internal/adapter/http/dto"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/LiquidCats/rater/internal/app/usecase"
+	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
 
 	"github.com/gin-gonic/gin"
@@ -28,7 +29,7 @@ func (r *RateHandler) Handle(ctx *gin.Context) {
 
 	pair, err := pairStr.ToPair()
 	if err != nil {
-		logger.Error().Err(err).Msg("invalid pair")
+		logger.Error().Any("err", eris.ToJSON(err, true)).Msg("invalid pair")
 
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.NewErrorResponse(err))
 		return
@@ -36,7 +37,7 @@ func (r *RateHandler) Handle(ctx *gin.Context) {
 
 	rate, err := r.usecase.GetRate(ctx, pair)
 	if err != nil {
-		logger.Error().Err(err).Msg("invalid rate")
+		logger.Error().Any("err", eris.ToJSON(err, true)).Msg("invalid rate")
 
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.NewErrorResponse(err))
 		return
