@@ -47,11 +47,11 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Dec
 	decoder := json.NewDecoder(res.Body)
 	if res.StatusCode >= http.StatusBadRequest {
 		var resBody string
-		if err := decoder.Decode(&resBody); err != nil && err != io.EOF {
+		if err = decoder.Decode(&resBody); err != nil && eris.Is(err, io.EOF) {
 			return decimal.Zero, eris.Wrap(err, "repo: could not decode response body")
 		}
 
-		return decimal.Zero, &errors.ErrProviderRequestFailed{
+		return decimal.Zero, &errors.ProviderRequestFailedError{
 			StatusCode: res.StatusCode,
 			Body:       resBody,
 		}
@@ -59,7 +59,7 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Dec
 
 	var resp data.APIResponse
 
-	if err := decoder.Decode(&resp); err != nil {
+	if err = decoder.Decode(&resp); err != nil {
 		return decimal.Zero, eris.Wrap(err, "repo: could not unmarshal response")
 	}
 

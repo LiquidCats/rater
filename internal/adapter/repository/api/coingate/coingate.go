@@ -50,8 +50,7 @@ func (c *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Dec
 	}
 
 	if res.StatusCode >= http.StatusBadRequest {
-
-		return decimal.Zero, &errors.ErrProviderRequestFailed{
+		return decimal.Zero, &errors.ProviderRequestFailedError{
 			StatusCode: res.StatusCode,
 			Body:       string(data),
 		}

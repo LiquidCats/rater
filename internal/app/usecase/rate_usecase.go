@@ -69,7 +69,7 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 		price, err = adapter.GetRate(ctx, pair)
 		provider = name
 		if err != nil {
-			var providerErr *domain.ErrProviderRequestFailed
+			var providerErr *domain.ProviderRequestFailedError
 			if eris.As(err, &providerErr) {
 				logger = logger.With().
 					Int("provider_err_code", providerErr.StatusCode).
