@@ -26,4 +26,4 @@ jobs:
       - name: Code Style Check
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.0.1
+          version: v2.1.0
