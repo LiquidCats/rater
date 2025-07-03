@@ -37,10 +37,11 @@ func TestRateHandler_Handle(t *testing.T) {
 	}, time.Second*5).Once().Return(nil)
 
 	rateAPI.On("GetRate", mock.Anything, matcher).Once().Return(decimal.NewFromFloat(25000.77733333), nil)
+	metrics := mocks.NewProviderErrRateMetric(t)
 
 	useCase := usecase.NewRateUsecase(rateCache, api.Registry{
 		"test": rateAPI,
-	})
+	}, metrics)
 	handler := routes.NewRateHandler(useCase)
 
 	router := http2.NewRouter()

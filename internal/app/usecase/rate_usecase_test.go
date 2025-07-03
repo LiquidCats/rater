@@ -44,8 +44,9 @@ func TestExchange_Get(t *testing.T) {
 				providers := api.Registry{
 					"test": rateAPI,
 				}
+				metrics := mocks.NewProviderErrRateMetric(t)
 
-				return usecase.NewRateUsecase(rateCache, providers)
+				return usecase.NewRateUsecase(rateCache, providers, metrics)
 			},
 		},
 		{
@@ -71,7 +72,9 @@ func TestExchange_Get(t *testing.T) {
 					"test": rateAPI,
 				}
 
-				return usecase.NewRateUsecase(rateCache, providers)
+				metrics := mocks.NewProviderErrRateMetric(t)
+
+				return usecase.NewRateUsecase(rateCache, providers, metrics)
 			},
 		},
 	}
