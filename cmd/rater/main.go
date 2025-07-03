@@ -60,6 +60,7 @@ func main() {
 	apiRegistry.Register(entity.ProviderNameCoinMarketCap, coinmarketcap.NewReposiotry(cfg.CoinMarketCap))
 
 	providerErrRateMetric := prometheus.NewProviderErrRate(app)
+	responseTimeMetric := prometheus.NewResponseTime(app)
 
 	rateUsecase := usecase.NewRateUsecase(
 		cache,
@@ -68,7 +69,7 @@ func main() {
 	)
 
 	rootHandler := routes.NewRootHandler()
-	rateHandler := routes.NewRateHandler(rateUsecase)
+	rateHandler := routes.NewRateHandler(rateUsecase, responseTimeMetric)
 
 	baseCurrencyMiddleware := middlware.NewPairValidation(cfg.App.Pairs)
 
