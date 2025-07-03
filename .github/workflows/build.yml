@@ -18,6 +18,9 @@ jobs:
   tests:
     uses: ./.github/workflows/tests.yml
 
+  vets:
+    uses: ./.github/workflows/vet.yml
+
   build:
     runs-on: ubuntu-latest
 

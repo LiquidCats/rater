@@ -3,6 +3,7 @@ package dto
 import (
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/gin-gonic/gin"
+	"github.com/rotisserie/eris"
 )
 
 type ResponseStatus string
@@ -30,7 +31,7 @@ func NewFailResponse(data interface{}) gin.H {
 func NewErrorResponse(err error) gin.H {
 	return gin.H{
 		"status":  StatusError,
-		"message": err.Error(),
+		"message": eris.ToJSON(err, false),
 	}
 }
 

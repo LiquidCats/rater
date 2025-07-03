@@ -1,6 +1,9 @@
 x-app-env: &app-env
-  RATER_APP_PORT: 8080
   RATER_APP_PAIRS: "BTC_USD,BTC_EUR,ETH_USD,ETH_EUR"
+
+  RATER_HTTP_PORT: 8080
+
+  RATER_METRICS_PORT: 9090
 
   RATER_COIN_GATE_URL: "https://api.coingate.com/v2/rates/merchant"
 

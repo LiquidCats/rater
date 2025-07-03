@@ -8,7 +8,8 @@ import (
 
 	"github.com/LiquidCats/rater/configs"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
-	"github.com/pkg/errors"
+	"github.com/LiquidCats/rater/internal/app/domain/errors"
+	"github.com/rotisserie/eris"
 	"github.com/shopspring/decimal"
 )
 
@@ -32,25 +33,32 @@ func (c *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Dec
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return decimal.Zero, errors.Wrap(err, "repo: could not create request")
+		return decimal.Zero, eris.Wrap(err, "repo: could not create request")
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return decimal.Zero, errors.Wrap(err, "repo: error making http request")
+		return decimal.Zero, eris.Wrap(err, "repo: error making http request")
 	}
 	defer func() {
 		_ = res.Body.Close()
 	}()
 
-	resBody, err := io.ReadAll(res.Body)
+	data, err := io.ReadAll(res.Body)
 	if err != nil {
-		return decimal.Zero, errors.Wrap(err, "repo: could not read response body")
+		return decimal.Zero, eris.Wrap(err, "repo: could not read response body")
 	}
 
-	value, err := decimal.NewFromString(string(resBody))
+	if res.StatusCode >= http.StatusBadRequest {
+		return decimal.Zero, &errors.ProviderRequestFailedError{
+			StatusCode: res.StatusCode,
+			Body:       string(data),
+		}
+	}
+
+	value, err := decimal.NewFromString(string(data))
 	if err != nil {
-		return decimal.Zero, errors.Wrap(err, "repo: could not parse response")
+		return decimal.Zero, eris.Wrap(err, "repo: could not parse response")
 	}
 
 	return value, nil

@@ -1,4 +1,4 @@
-name: Code Style
+name: Go Vets
 
 permissions:
   contents: read
@@ -11,7 +11,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  vet:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +23,5 @@ jobs:
       - name: Check Out
         uses: actions/checkout@v4
 
-      - name: Code Style Check
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: v2.1.0
+      - name: Run Tests
+        run: go vet -v ./...

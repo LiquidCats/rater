@@ -1,9 +1,10 @@
 package entity
 
 import (
-	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/rotisserie/eris"
 )
 
 type CurrencyISO string
@@ -34,7 +35,7 @@ func (s CurrencyPairString) ToPair() (Pair, error) {
 	parts := strings.Split(string(s), "_")
 
 	if len(parts) != 2 { // nolint:mnd
-		return Pair{}, errors.New("invalid currency pair")
+		return Pair{}, eris.New("invalid currency pair")
 	}
 
 	return Pair{

@@ -9,7 +9,7 @@ ADD ./ /app
 ENV CGO_ENABLED=0
 
 RUN go mod download
-RUN go build -o main ./cmd/upgrader/main.go
+RUN go build -o main ./cmd/rater/main.go
 
 FROM scratch
 

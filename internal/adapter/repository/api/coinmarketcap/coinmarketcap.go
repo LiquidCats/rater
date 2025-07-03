@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/LiquidCats/rater/configs"
 	"github.com/LiquidCats/rater/internal/adapter/repository/api/coinmarketcap/data"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
-	"github.com/pkg/errors"
+	"github.com/LiquidCats/rater/internal/app/domain/errors"
+	"github.com/rotisserie/eris"
 	"github.com/shopspring/decimal"
 )
 
@@ -32,12 +34,12 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Dec
 	)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return decimal.Zero, errors.Wrap(err, "repo: could not create request")
+		return decimal.Zero, eris.Wrap(err, "repo: could not create request")
 	}
 
 	secret, err := r.cfg.GetSecret()
 	if err != nil {
-		return decimal.Zero, errors.Wrap(err, "repo: could not get secret")
+		return decimal.Zero, eris.Wrap(err, "repo: could not get secret")
 	}
 
 	req.Header.Set("Accept", "application/json")
@@ -45,23 +47,34 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Dec
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return decimal.Zero, errors.Wrap(err, "repo: error making http request")
+		return decimal.Zero, eris.Wrap(err, "repo: error making http request")
 	}
 	defer func() {
 		_ = res.Body.Close()
 	}()
 
+	decoder := json.NewDecoder(res.Body)
+	if res.StatusCode >= http.StatusBadRequest {
+		var resBody string
+		if err = decoder.Decode(&resBody); err != nil && eris.Is(err, io.EOF) {
+			return decimal.Zero, eris.Wrap(err, "repo: could not decode response body")
+		}
+
+		return decimal.Zero, &errors.ProviderRequestFailedError{
+			StatusCode: res.StatusCode,
+			Body:       resBody,
+		}
+	}
+
 	var response data.APIResponse
 
-	decoder := json.NewDecoder(res.Body)
-
 	if err = decoder.Decode(&response); err != nil {
-		return decimal.Zero, errors.Wrap(err, "repo: could not parse response")
+		return decimal.Zero, eris.Wrap(err, "repo: could not parse response")
 	}
 
 	quotePrice, ok := response.Data.Quote[pair.To.ToUpper().String()]
 	if !ok {
-		return decimal.Zero, errors.Wrap(err, "repo: could not parse response")
+		return decimal.Zero, eris.Wrap(err, "repo: could not parse response")
 	}
 
 	return decimal.NewFromFloat(quotePrice.Price), nil

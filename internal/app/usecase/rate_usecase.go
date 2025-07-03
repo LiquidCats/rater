@@ -7,20 +7,34 @@ import (
 	"github.com/LiquidCats/rater/internal/adapter/repository/api"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	domain "github.com/LiquidCats/rater/internal/app/domain/errors"
+	"github.com/LiquidCats/rater/internal/app/port/adapter/metrics"
 	"github.com/LiquidCats/rater/internal/app/port/adapter/repository"
+	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
 	"github.com/shopspring/decimal"
 )
 
+type Metrics struct {
+	providerErrRate metrics.ProviderErrRateMetric
+}
+
 type RateUsecase struct {
 	cache    repository.RateCache
 	adapters map[entity.ProviderName]repository.RateAPI
+	metrics  Metrics
 }
 
-func NewRateUsecase(cache repository.RateCache, providers api.Registry) *RateUsecase {
+func NewRateUsecase(
+	cache repository.RateCache,
+	providers api.Registry,
+	providerErrRateMetric metrics.ProviderErrRateMetric,
+) *RateUsecase {
 	return &RateUsecase{
 		cache:    cache,
 		adapters: providers,
+		metrics: Metrics{
+			providerErrRate: providerErrRateMetric,
+		},
 	}
 }
 
@@ -36,14 +50,15 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 		With().
 		Str("name", "use_case.get_rate").
 		Any("pair", pair).
-		Stack().
 		Logger()
 
 	logger.Debug().Msg("get rate")
 
 	rate, err := e.cache.GetRate(ctx, pair)
 	if err != nil {
-		logger.Error().Stack().Err(err).Msg("cant get rate value from cache")
+		logger.Error().
+			Any("err", eris.ToJSON(err, true)).
+			Msg("cant get rate value from cache")
 	}
 
 	if rate != nil {
@@ -53,12 +68,19 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 	for name, adapter := range e.adapters {
 		price, err = adapter.GetRate(ctx, pair)
 		provider = name
-
 		if err != nil {
+			var providerErr *domain.ProviderRequestFailedError
+			if eris.As(err, &providerErr) {
+				logger = logger.With().
+					Int("provider_err_code", providerErr.StatusCode).
+					Str("provider_err_body", providerErr.Body).
+					Logger()
+				e.metrics.providerErrRate.Inc(providerErr.StatusCode, name)
+			}
+
 			logger.Error().
-				Err(err).
-				Stack().
-				Any("provider", provider).
+				Any("err", eris.ToJSON(err, true)).
+				Any("provider", name).
 				Msg("cant get rate")
 			continue
 		}
@@ -69,9 +91,10 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 	}
 
 	if price.IsZero() {
+		e.metrics.providerErrRate.Inc(-1, provider)
+
 		logger.Error().
-			Err(err).
-			Stack().
+			Any("err", eris.ToJSON(err, true)).
 			Any("provider", provider).
 			Msg("rate not available")
 		return nil, domain.ErrRateNotAvailable
@@ -85,8 +108,7 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 
 	if err = e.cache.PutRate(ctx, *rate, 5*time.Second); nil != err { // nolint:mnd
 		logger.Error().
-			Err(err).
-			Stack().
+			Any("err", eris.ToJSON(err, true)).
 			Any("provider", provider).
 			Msg("cant put rate value into cache")
 
