@@ -1,6 +1,6 @@
 .PHONY: mock
 mock:
-	docker run --rm -i -v ${PWD}:/src -w /src vektra/mockery --dir=internal/app/port --output=test/mocks --all
+	docker run --rm -i -v ${PWD}:/src -w /src vektra/mockery:v2 --dir=internal/app/port --output=test/mocks --all
 
 .PHONY: test
 test:
