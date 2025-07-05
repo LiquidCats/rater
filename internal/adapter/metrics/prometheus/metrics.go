@@ -6,6 +6,7 @@ import (
 
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type ProviderErrRate struct {
@@ -13,18 +14,10 @@ type ProviderErrRate struct {
 }
 
 func NewProviderErrRate(namespace string) *ProviderErrRate {
-	counterVec := prometheus.V2.NewCounterVec(prometheus.CounterVecOpts{
-		CounterOpts: prometheus.CounterOpts{
-			Namespace: namespace,
-			Name:      "provider_err_rate",
-		},
-		VariableLabels: prometheus.ConstrainedLabels{
-			{Name: "code"},
-			{Name: "provider"},
-		},
-	})
-
-	prometheus.MustRegister(counterVec)
+	counterVec := promauto.NewCounterVec(prometheus.CounterOpts{
+		Namespace: namespace,
+		Name:      "provider_err_rate",
+	}, []string{"code", "provider"})
 
 	return &ProviderErrRate{
 		CounterVec: counterVec,
@@ -40,16 +33,11 @@ type ResponseTime struct {
 }
 
 func NewResponseTime(namespace string) *ResponseTime {
-	histogramVec := prometheus.V2.NewHistogramVec(prometheus.HistogramVecOpts{
-		HistogramOpts: prometheus.HistogramOpts{
-			Namespace: namespace,
-			Name:      "response_time",
-			Buckets:   []float64{0.1, 0.3, 0.5, 0.7, 1, 3, 5, 8, 13},
-		},
-		VariableLabels: prometheus.ConstrainedLabels{
-			{Name: "route"},
-		},
-	})
+	histogramVec := promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Namespace: namespace,
+		Name:      "response_time",
+		Buckets:   []float64{0.1, 0.3, 0.5, 0.7, 1, 3, 5, 8, 13},
+	}, []string{"route"})
 	return &ResponseTime{histogramVec}
 }
 

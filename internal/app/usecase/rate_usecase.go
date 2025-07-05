@@ -14,27 +14,25 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type Metrics struct {
-	providerErrRate metrics.ProviderErrRateMetric
+type RateUsecaseMetrics struct {
+	ProviderErrRate metrics.ProviderErrRateMetric
 }
 
 type RateUsecase struct {
 	cache    repository.RateCache
 	adapters map[entity.ProviderName]repository.RateAPI
-	metrics  Metrics
+	metrics  RateUsecaseMetrics
 }
 
 func NewRateUsecase(
 	cache repository.RateCache,
 	providers api.Registry,
-	providerErrRateMetric metrics.ProviderErrRateMetric,
+	metrics RateUsecaseMetrics,
 ) *RateUsecase {
 	return &RateUsecase{
 		cache:    cache,
 		adapters: providers,
-		metrics: Metrics{
-			providerErrRate: providerErrRateMetric,
-		},
+		metrics:  metrics,
 	}
 }
 
@@ -75,7 +73,7 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 					Int("provider_err_code", providerErr.StatusCode).
 					Str("provider_err_body", providerErr.Body).
 					Logger()
-				e.metrics.providerErrRate.Inc(providerErr.StatusCode, name)
+				e.metrics.ProviderErrRate.Inc(providerErr.StatusCode, name)
 			}
 
 			logger.Error().
@@ -91,7 +89,7 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 	}
 
 	if price.IsZero() {
-		e.metrics.providerErrRate.Inc(-1, provider)
+		e.metrics.ProviderErrRate.Inc(-1, provider)
 
 		logger.Error().
 			Any("err", eris.ToJSON(err, true)).

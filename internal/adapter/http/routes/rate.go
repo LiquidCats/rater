@@ -16,19 +16,23 @@ import (
 
 type RateHandler struct {
 	usecase *usecase.RateUsecase
-	metric  metrics.ResponseTimeMetric
+	metrics Metrics
 }
 
-func NewRateHandler(usecase *usecase.RateUsecase, metric metrics.ResponseTimeMetric) *RateHandler {
+type Metrics struct {
+	ResponseTime metrics.ResponseTimeMetric
+}
+
+func NewRateHandler(usecase *usecase.RateUsecase, metrics Metrics) *RateHandler {
 	return &RateHandler{
 		usecase: usecase,
-		metric:  metric,
+		metrics: metrics,
 	}
 }
 
 func (r *RateHandler) Handle(ctx *gin.Context) {
 	start := time.Now()
-	defer r.metric.Observe(ctx.Request.URL.Path, start)
+	defer r.metrics.ResponseTime.Observe(ctx.Request.URL.Path, start)
 
 	pairStr := entity.CurrencyPairString(ctx.Param("pair"))
 

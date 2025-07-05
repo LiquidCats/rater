@@ -65,11 +65,13 @@ func main() {
 	rateUsecase := usecase.NewRateUsecase(
 		cache,
 		apiRegistry,
-		providerErrRateMetric,
+		usecase.RateUsecaseMetrics{
+			ProviderErrRate: providerErrRateMetric,
+		},
 	)
 
 	rootHandler := routes.NewRootHandler()
-	rateHandler := routes.NewRateHandler(rateUsecase, responseTimeMetric)
+	rateHandler := routes.NewRateHandler(rateUsecase, routes.Metrics{ResponseTime: responseTimeMetric})
 
 	baseCurrencyMiddleware := middlware.NewPairValidation(cfg.App.Pairs)
 
