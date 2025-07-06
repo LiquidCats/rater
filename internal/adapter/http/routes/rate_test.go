@@ -43,9 +43,13 @@ func TestRateHandler_Handle(t *testing.T) {
 
 	useCase := usecase.NewRateUsecase(rateCache, api.Registry{
 		"test": rateAPI,
-	}, providerErrRateMetric)
+	}, usecase.RateUsecaseMetrics{
+		ProviderErrRate: providerErrRateMetric,
+	})
 
-	handler := routes.NewRateHandler(useCase, responseTimeMetric)
+	handler := routes.NewRateHandler(useCase, routes.Metrics{
+		ResponseTime: responseTimeMetric,
+	})
 
 	router := http2.NewRouter()
 

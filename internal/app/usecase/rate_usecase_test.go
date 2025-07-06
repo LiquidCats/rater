@@ -46,7 +46,7 @@ func TestExchange_Get(t *testing.T) {
 				}
 				metrics := mocks.NewProviderErrRateMetric(t)
 
-				return usecase.NewRateUsecase(rateCache, providers, metrics)
+				return usecase.NewRateUsecase(rateCache, providers, usecase.RateUsecaseMetrics{ProviderErrRate: metrics})
 			},
 		},
 		{
@@ -74,7 +74,7 @@ func TestExchange_Get(t *testing.T) {
 
 				metrics := mocks.NewProviderErrRateMetric(t)
 
-				return usecase.NewRateUsecase(rateCache, providers, metrics)
+				return usecase.NewRateUsecase(rateCache, providers, usecase.RateUsecaseMetrics{ProviderErrRate: metrics})
 			},
 		},
 	}
