@@ -20,6 +20,12 @@ x-app-env: &app-env
   RATER_REDIS_ADDRESS: "cache:6379"
   RATER_REDIS_DB: 0
 
+  RATER_DB_HOST: db
+  RATER_DB_PORT: 5432
+  RATER_DB_USER: watcher_db_user
+  RATER_DB_PASSWORD: watcher_db_secret
+  RATER_DB_DATABASE: watcher_db
+
 services:
   dev:
     build:
@@ -41,6 +47,17 @@ services:
       - rater
     ports:
       - "6379:6379"
+
+  db:
+    image: postgres:alpine
+    environment:
+      POSTGRES_USER: watcher_db_user
+      POSTGRES_PASSWORD: watcher_db_secret
+      POSTGRES_DB: watcher_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
 networks:
   rater:

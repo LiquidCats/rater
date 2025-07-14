@@ -1,0 +1,10 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "internal/adapter/repository/database/queries"
+    schema: "internal/adapter/repository/database/migrations"
+    gen:
+      go:
+        package: "database"
+        out: "internal/adapter/repository/database"
+        sql_package: "pgx/v5"
