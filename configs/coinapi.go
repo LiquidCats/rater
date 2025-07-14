@@ -1,6 +1,10 @@
 package configs
 
-import "github.com/go-playground/sensitive"
+import (
+	"github.com/LiquidCats/rater/pkg/docker"
+	"github.com/go-playground/sensitive"
+	"github.com/rotisserie/eris"
+)
 
 type CoinApiConfig struct { // nolint:revive
 	URL        string           `yaml:"url" envconfig:"URL"`
@@ -13,5 +17,10 @@ func (c CoinApiConfig) GetSecret() (sensitive.String, error) {
 		return c.Secret, nil
 	}
 
-	return getSecretFromFile(c.SecretFile)
+	val, err := docker.GetSecret(c.SecretFile)
+	if err != nil {
+		return "", eris.Wrap(err, "coingateConfig: couldn't read secret file")
+	}
+
+	return sensitive.String(val), err
 }

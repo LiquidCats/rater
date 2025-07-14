@@ -13,6 +13,7 @@ type Config struct {
 	Redis   RedisConfig         `yaml:"redis" envconfig:"REDIS"`
 	HTTP    graceful.HttpConfig `yaml:"http" envconfig:"HTTP"`
 	Metrics graceful.HttpConfig `yaml:"metrics" envconfig:"METRICS"`
+	DB      DB                  `yaml:"db" envconfig:"DB"`
 
 	CoinGate      CoinGateConfig      `yaml:"coingate" envconfig:"COIN_GATE"`
 	Cex           CexConfig           `yaml:"cex" envconfig:"CEX"`
