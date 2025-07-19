@@ -9,8 +9,8 @@ import (
 
 	http2 "github.com/LiquidCats/rater/internal/adapter/http"
 	"github.com/LiquidCats/rater/internal/adapter/http/routes"
-	"github.com/LiquidCats/rater/internal/adapter/repository/api"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/LiquidCats/rater/internal/app/port/adapter/metrics"
 	"github.com/LiquidCats/rater/internal/app/usecase"
 	"github.com/LiquidCats/rater/test/mocks"
 	"github.com/shopspring/decimal"
@@ -19,46 +19,129 @@ import (
 )
 
 func TestRateHandler_Handle(t *testing.T) {
-	rateCache := mocks.NewRateCache(t)
-	rateAPI := mocks.NewRateAPI(t)
+	tests := []struct {
+		name   string
+		ts     time.Time
+		before func(t *testing.T) (*usecase.RateUseCase, metrics.ResponseTimeMetric)
+	}{
+		{
+			name: "happy path",
+			before: func(t *testing.T) (*usecase.RateUseCase, metrics.ResponseTimeMetric) {
+				m := mocks.NewResponseTimeMetric(t)
+				cache := mocks.NewCacheService(t)
+				service := mocks.NewRateService(t)
 
-	matcher := mock.MatchedBy(func(pair entity.Pair) bool {
-		return pair.From == "BTC" && pair.To == "USD"
-	})
+				rate := entity.Rate{
+					Pair: entity.Pair{
+						From:   "BTC",
+						To:     "USD",
+						Symbol: "BTC_USD",
+					},
+					Price:    decimal.RequireFromString("25000.77733333"),
+					Provider: "test",
+				}
 
-	rateCache.On("GetRate", mock.Anything, matcher).Once().Return(nil, nil)
-	rateCache.On("PutRate", mock.Anything, entity.Rate{
-		Pair: entity.Pair{
-			From: "BTC",
-			To:   "USD",
+				service.On("Current", mock.Anything, rate.Pair).Once().Return(&rate, rate.Provider, nil)
+
+				cache.On("GetRate", mock.Anything, rate.Pair).Once().Return(nil, nil)
+				cache.On("PutRate", mock.Anything, rate).Once().Return(nil)
+
+				m.On("Observe", "/rate/BTC_USD", mock.Anything).Once().Return()
+
+				uc := usecase.NewRateUseCase(usecase.RateUseCaseDeps{
+					Cache:   cache,
+					Service: service,
+				})
+
+				return uc, m
+			},
 		},
-		Price:    decimal.NewFromFloat(25000.77733333),
-		Provider: "test",
-	}, time.Second*5).Once().Return(nil)
+		{
+			name: "from cache",
+			before: func(t *testing.T) (*usecase.RateUseCase, metrics.ResponseTimeMetric) {
+				m := mocks.NewResponseTimeMetric(t)
+				cache := mocks.NewCacheService(t)
+				service := mocks.NewRateService(t)
 
-	rateAPI.On("GetRate", mock.Anything, matcher).Once().Return(decimal.NewFromFloat(25000.77733333), nil)
-	providerErrRateMetric := mocks.NewProviderErrRateMetric(t)
-	responseTimeMetric := mocks.NewResponseTimeMetric(t)
-	responseTimeMetric.On("Observe", "/rate/BTC_USD", mock.Anything).Once().Return()
+				rate := entity.Rate{
+					Pair: entity.Pair{
+						From:   "BTC",
+						To:     "USD",
+						Symbol: "BTC_USD",
+					},
+					Price:    decimal.RequireFromString("25000.77733333"),
+					Provider: "test",
+				}
 
-	useCase := usecase.NewRateUsecase(rateCache, api.Registry{
-		"test": rateAPI,
-	}, usecase.RateUsecaseMetrics{
-		ProviderErrRate: providerErrRateMetric,
-	})
+				cache.On("GetRate", mock.Anything, rate.Pair).Once().Return(&rate, nil)
+				m.On("Observe", "/rate/BTC_USD", mock.Anything).Once().Return()
 
-	handler := routes.NewRateHandler(useCase, routes.Metrics{
-		ResponseTime: responseTimeMetric,
-	})
+				uc := usecase.NewRateUseCase(usecase.RateUseCaseDeps{
+					Cache:   cache,
+					Service: service,
+				})
 
-	router := http2.NewRouter()
+				return uc, m
+			},
+		},
+		{
+			name: "get historical",
+			ts:   time.Date(2021, 4, 15, 11, 42, 31, 0, time.UTC),
+			before: func(t *testing.T) (*usecase.RateUseCase, metrics.ResponseTimeMetric) {
+				m := mocks.NewResponseTimeMetric(t)
+				cache := mocks.NewCacheService(t)
+				service := mocks.NewRateService(t)
 
-	router.GET("/rate/:pair", handler.Handle)
+				rate := entity.Rate{
+					Pair: entity.Pair{
+						From:   "BTC",
+						To:     "USD",
+						Symbol: "BTC_USD",
+					},
+					Price:    decimal.RequireFromString("25000.77733333"),
+					Provider: "test",
+				}
 
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, fmt.Sprint("/rate/", "BTC_USD"), nil)
-	router.ServeHTTP(w, req)
+				dt := time.Date(2021, 4, 15, 11, 42, 31, 0, time.UTC).
+					Format(entity.DefaultFormat)
+				ts := time.Date(2021, 4, 15, 11, 40, 0, 0, time.UTC)
+				service.On("Historical", mock.Anything, rate.Pair, ts).Once().Return(&rate, nil)
+				m.On("Observe", "/rate/BTC_USD/"+dt, mock.Anything).Once().Return()
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.JSONEq(t, `{"data":{"pair":"BTC_USD","price":"25000.77733333"},"status":"success"}`, w.Body.String())
+				uc := usecase.NewRateUseCase(usecase.RateUseCaseDeps{
+					Cache:   cache,
+					Service: service,
+				})
+
+				return uc, m
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			uc, m := test.before(t)
+
+			handler := routes.NewRateHandler(uc, routes.Metrics{
+				ResponseTime: m,
+			})
+
+			router := http2.NewRouter()
+
+			w := httptest.NewRecorder()
+			var req *http.Request
+			if test.ts.IsZero() {
+				router.GET("/rate/:pair", handler.Handle)
+				req, _ = http.NewRequest(http.MethodGet, fmt.Sprint("/rate/", "BTC_USD"), nil)
+			} else {
+				router.GET("/rate/:pair/*date", handler.Handle)
+				req, _ = http.NewRequest(http.MethodGet, fmt.Sprint("/rate/BTC_USD/", test.ts.Format(entity.DefaultFormat)), nil)
+			}
+
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusOK, w.Code)
+			assert.JSONEq(t, `{"data":{"pair":"BTC_USD","price":"25000.77733333"},"status":"success"}`, w.Body.String())
+		})
+	}
 }
