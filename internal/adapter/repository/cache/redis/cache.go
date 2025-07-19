@@ -1,76 +1,45 @@
 package redis
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/LiquidCats/rater/configs"
-	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/bytedance/sonic"
+	"github.com/go-redis/cache/v9"
 	"github.com/redis/go-redis/v9"
-	"github.com/rotisserie/eris"
 )
 
-type CacheRepository struct {
+type Repository struct {
 	baseKey string
-	client  *redis.Client
+	client  *cache.Cache
 }
 
-func NewCacheRepository(cfg configs.RedisConfig, baseKey string) (*CacheRepository, error) {
+func New(cfg configs.RedisConfig) *Repository {
 	client := redis.NewClient(&redis.Options{
 		Addr:     cfg.Address,
 		Password: string(cfg.Password),
 		DB:       cfg.DB,
-		Protocol: 3, // nolint:mnd
+		Protocol: cfg.Protocol, // nolint:mnd
 	})
 
-	cmd := client.Ping(context.Background())
+	return &Repository{
+		baseKey: configs.AppName,
+		client: cache.New(&cache.Options{
+			Redis:      client,
+			LocalCache: cache.NewTinyLFU(10, time.Second*5),
 
-	return &CacheRepository{
-		baseKey: baseKey,
-		client:  client,
-	}, eris.Wrap(cmd.Err(), "ping redis server")
+			Marshal: func(i interface{}) ([]byte, error) {
+				return sonic.Marshal(i)
+			},
+			Unmarshal: func(b []byte, i interface{}) error {
+				return sonic.Unmarshal(b, i)
+			},
+		}),
+	}
 }
 
-func (c *CacheRepository) GetRate(ctx context.Context, pair entity.Pair) (*entity.Rate, error) {
-	b := c.client.Get(ctx, c.makeRateKey(pair)).Val()
-	if len(b) == 0 {
-		return nil, nil // nolint:nilnil
-	}
-
-	var rate entity.Rate
-	decoder := json.NewDecoder(bytes.NewReader([]byte(b)))
-	if err := decoder.Decode(&rate); err != nil {
-		return nil, eris.Wrap(err, "decode rate from cache")
-	}
-
-	return &rate, nil
-}
-
-func (c *CacheRepository) PutRate(ctx context.Context, rate entity.Rate, expire time.Duration) error {
-	buff := bytes.NewBuffer([]byte{})
-	if err := json.NewEncoder(buff).Encode(rate); err != nil {
-		return eris.Wrap(err, "encode rate to cache")
-	}
-
-	cmd := c.client.Set(ctx, c.makeRateKey(rate.Pair), buff.Bytes(), expire)
-	if err := cmd.Err(); err != nil {
-		return eris.Wrap(err, "save rate to cache")
-	}
-
-	return nil
-}
-
-func (c *CacheRepository) makeRateKey(pair entity.Pair) string {
-	return strings.ToLower(
-		fmt.Sprintf(
-			"%s:rate:from:%s:to:%s",
-			c.baseKey,
-			pair.From.ToLower(),
-			pair.To.ToUpper(),
-		),
-	)
+func (c *Repository) key(k fmt.Stringer) string {
+	return strings.ToLower(fmt.Sprintf("%s:%s", c.baseKey, k))
 }
