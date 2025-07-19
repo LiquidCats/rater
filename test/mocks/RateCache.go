@@ -39,7 +39,7 @@ func (_m *RateCache) EXPECT() *RateCache_Expecter {
 }
 
 // GetRate provides a mock function for the type RateCache
-func (_mock *RateCache) GetRate(ctx context.Context, key string) (*redis.Rate, error) {
+func (_mock *RateCache) GetRate(ctx context.Context, key redis.RateKey) (*redis.Rate, error) {
 	ret := _mock.Called(ctx, key)
 
 	if len(ret) == 0 {
@@ -48,17 +48,17 @@ func (_mock *RateCache) GetRate(ctx context.Context, key string) (*redis.Rate, e
 
 	var r0 *redis.Rate
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*redis.Rate, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, redis.RateKey) (*redis.Rate, error)); ok {
 		return returnFunc(ctx, key)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *redis.Rate); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, redis.RateKey) *redis.Rate); ok {
 		r0 = returnFunc(ctx, key)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*redis.Rate)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, redis.RateKey) error); ok {
 		r1 = returnFunc(ctx, key)
 	} else {
 		r1 = ret.Error(1)
@@ -73,20 +73,20 @@ type RateCache_GetRate_Call struct {
 
 // GetRate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - key string
+//   - key redis.RateKey
 func (_e *RateCache_Expecter) GetRate(ctx interface{}, key interface{}) *RateCache_GetRate_Call {
 	return &RateCache_GetRate_Call{Call: _e.mock.On("GetRate", ctx, key)}
 }
 
-func (_c *RateCache_GetRate_Call) Run(run func(ctx context.Context, key string)) *RateCache_GetRate_Call {
+func (_c *RateCache_GetRate_Call) Run(run func(ctx context.Context, key redis.RateKey)) *RateCache_GetRate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 redis.RateKey
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(redis.RateKey)
 		}
 		run(
 			arg0,
@@ -101,13 +101,13 @@ func (_c *RateCache_GetRate_Call) Return(rate *redis.Rate, err error) *RateCache
 	return _c
 }
 
-func (_c *RateCache_GetRate_Call) RunAndReturn(run func(ctx context.Context, key string) (*redis.Rate, error)) *RateCache_GetRate_Call {
+func (_c *RateCache_GetRate_Call) RunAndReturn(run func(ctx context.Context, key redis.RateKey) (*redis.Rate, error)) *RateCache_GetRate_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // PutRate provides a mock function for the type RateCache
-func (_mock *RateCache) PutRate(ctx context.Context, key string, value redis.Rate) error {
+func (_mock *RateCache) PutRate(ctx context.Context, key redis.RateKey, value redis.Rate) error {
 	ret := _mock.Called(ctx, key, value)
 
 	if len(ret) == 0 {
@@ -115,7 +115,7 @@ func (_mock *RateCache) PutRate(ctx context.Context, key string, value redis.Rat
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, redis.Rate) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, redis.RateKey, redis.Rate) error); ok {
 		r0 = returnFunc(ctx, key, value)
 	} else {
 		r0 = ret.Error(0)
@@ -130,21 +130,21 @@ type RateCache_PutRate_Call struct {
 
 // PutRate is a helper method to define mock.On call
 //   - ctx context.Context
-//   - key string
+//   - key redis.RateKey
 //   - value redis.Rate
 func (_e *RateCache_Expecter) PutRate(ctx interface{}, key interface{}, value interface{}) *RateCache_PutRate_Call {
 	return &RateCache_PutRate_Call{Call: _e.mock.On("PutRate", ctx, key, value)}
 }
 
-func (_c *RateCache_PutRate_Call) Run(run func(ctx context.Context, key string, value redis.Rate)) *RateCache_PutRate_Call {
+func (_c *RateCache_PutRate_Call) Run(run func(ctx context.Context, key redis.RateKey, value redis.Rate)) *RateCache_PutRate_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 string
+		var arg1 redis.RateKey
 		if args[1] != nil {
-			arg1 = args[1].(string)
+			arg1 = args[1].(redis.RateKey)
 		}
 		var arg2 redis.Rate
 		if args[2] != nil {
@@ -164,7 +164,7 @@ func (_c *RateCache_PutRate_Call) Return(err error) *RateCache_PutRate_Call {
 	return _c
 }
 
-func (_c *RateCache_PutRate_Call) RunAndReturn(run func(ctx context.Context, key string, value redis.Rate) error) *RateCache_PutRate_Call {
+func (_c *RateCache_PutRate_Call) RunAndReturn(run func(ctx context.Context, key redis.RateKey, value redis.Rate) error) *RateCache_PutRate_Call {
 	_c.Call.Return(run)
 	return _c
 }
