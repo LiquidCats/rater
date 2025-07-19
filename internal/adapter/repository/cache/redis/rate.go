@@ -25,15 +25,15 @@ func (p RateKey) String() string {
 	)
 }
 
-func (c *Repository) GetRate(ctx context.Context, key RateKey) (*Rate, error) {
+func (c *Repository) GetRate(ctx context.Context, key RateKey) (Rate, error) {
 	var value Rate
 
 	err := c.client.Get(ctx, c.key(key), &value)
 	if err != nil {
-		return nil, eris.Wrap(err, "get value from cache")
+		return value, eris.Wrap(err, "get value from cache")
 	}
 
-	return &value, nil
+	return value, nil
 }
 
 func (c *Repository) PutRate(ctx context.Context, key RateKey, value Rate) error {

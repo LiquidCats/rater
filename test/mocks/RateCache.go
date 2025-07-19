@@ -39,24 +39,22 @@ func (_m *RateCache) EXPECT() *RateCache_Expecter {
 }
 
 // GetRate provides a mock function for the type RateCache
-func (_mock *RateCache) GetRate(ctx context.Context, key redis.RateKey) (*redis.Rate, error) {
+func (_mock *RateCache) GetRate(ctx context.Context, key redis.RateKey) (redis.Rate, error) {
 	ret := _mock.Called(ctx, key)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetRate")
 	}
 
-	var r0 *redis.Rate
+	var r0 redis.Rate
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, redis.RateKey) (*redis.Rate, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, redis.RateKey) (redis.Rate, error)); ok {
 		return returnFunc(ctx, key)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, redis.RateKey) *redis.Rate); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, redis.RateKey) redis.Rate); ok {
 		r0 = returnFunc(ctx, key)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*redis.Rate)
-		}
+		r0 = ret.Get(0).(redis.Rate)
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, redis.RateKey) error); ok {
 		r1 = returnFunc(ctx, key)
@@ -96,12 +94,12 @@ func (_c *RateCache_GetRate_Call) Run(run func(ctx context.Context, key redis.Ra
 	return _c
 }
 
-func (_c *RateCache_GetRate_Call) Return(rate *redis.Rate, err error) *RateCache_GetRate_Call {
+func (_c *RateCache_GetRate_Call) Return(rate redis.Rate, err error) *RateCache_GetRate_Call {
 	_c.Call.Return(rate, err)
 	return _c
 }
 
-func (_c *RateCache_GetRate_Call) RunAndReturn(run func(ctx context.Context, key redis.RateKey) (*redis.Rate, error)) *RateCache_GetRate_Call {
+func (_c *RateCache_GetRate_Call) RunAndReturn(run func(ctx context.Context, key redis.RateKey) (redis.Rate, error)) *RateCache_GetRate_Call {
 	_c.Call.Return(run)
 	return _c
 }

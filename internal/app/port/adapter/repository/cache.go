@@ -7,6 +7,6 @@ import (
 )
 
 type RateCache interface {
-	GetRate(ctx context.Context, key redis.RateKey) (*redis.Rate, error)
+	GetRate(ctx context.Context, key redis.RateKey) (redis.Rate, error)
 	PutRate(ctx context.Context, key redis.RateKey, value redis.Rate) error
 }
