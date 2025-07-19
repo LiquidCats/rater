@@ -41,7 +41,7 @@ func NewRootResponse(version string) gin.H {
 
 func NewRateResponse(rate *entity.Rate) gin.H {
 	return NewSuccessResponse(gin.H{
-		"pair":  rate.Pair.ToCurrencyPairString().ToUpper(),
+		"pair":  rate.Pair.Symbol.ToUpper().String(),
 		"price": rate.Price.String(),
 	})
 }
