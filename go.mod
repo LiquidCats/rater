@@ -4,6 +4,7 @@ go 1.24.4
 
 require (
 	github.com/LiquidCats/graceful v0.0.4
+	github.com/alicebob/miniredis/v2 v2.35.0
 	github.com/gin-contrib/gzip v1.2.3
 	github.com/gin-contrib/logger v1.2.6
 	github.com/gin-gonic/gin v1.10.1
@@ -62,6 +63,7 @@ require (
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/arch v0.19.0 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
