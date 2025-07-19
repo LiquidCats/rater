@@ -55,13 +55,3 @@ type Pair struct {
 func (p *Pair) Join(glue string) string {
 	return fmt.Sprint(p.From, glue, p.To)
 }
-
-func (p *Pair) ToCacheKey() string {
-	return strings.ToLower(
-		fmt.Sprintf(
-			"from:%s:to:%s",
-			p.From,
-			p.To,
-		),
-	)
-}
