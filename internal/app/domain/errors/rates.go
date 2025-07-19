@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrRateNotAvailable = eris.New("exchange rate is not available right now")
+	ErrNoHistoricalRate = eris.New("historical rate is not available for this time")
 )
 
 type ProviderRequestFailedError struct {
