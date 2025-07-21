@@ -61,3 +61,6 @@ services:
 
 networks:
   rater:
+
+volumes:
+  postgres_data:
