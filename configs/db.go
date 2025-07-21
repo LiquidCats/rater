@@ -7,12 +7,12 @@ import (
 )
 
 type DB struct {
-	Driver   string `yaml:"driver" envconfig:"DRIVER" default:"postgres"`
-	Host     string `yaml:"host" envconfig:"HOST"`
-	Port     string `yaml:"port" envconfig:"PORT"`
-	Database string `yaml:"database" envconfig:"DATABASE"`
-	User     string `yaml:"user" envconfig:"USER"`
-	Password string `yaml:"password" envconfig:"PASSWORD"`
+	Driver   string `envconfig:"DRIVER" default:"postgres"`
+	Host     string `envconfig:"HOST"`
+	Port     string `envconfig:"PORT"`
+	Database string `envconfig:"DATABASE"`
+	User     string `envconfig:"USER"`
+	Password string `envconfig:"PASSWORD"`
 }
 
 func (d *DB) ToDSN() string {
