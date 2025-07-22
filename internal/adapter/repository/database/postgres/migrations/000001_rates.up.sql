@@ -23,7 +23,7 @@ insert into providers (name) values ('coinmarketcap');
 
 create table if not exists rates(
     id serial primary key,
-    price decimal(20,18) not null,
+    price decimal(16,6) not null,
     pair varchar(20) not null references pairs(symbol),
     provider varchar(50) not null references providers(name),
     ts timestamp not null default current_timestamp,
