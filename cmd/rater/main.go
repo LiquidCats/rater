@@ -108,7 +108,7 @@ func main() { //nolint:funlen
 	v1Router := router.Group("/v1")
 	v1Router.GET("/", rootHandler.Handle)
 	v1Router.GET(
-		"/rate/:pair/*date",
+		"/rate/:pair",
 		pairValidationMiddleware.Handle,
 		dateValidationMiddleware.Handle,
 		rateHandler.Handle,

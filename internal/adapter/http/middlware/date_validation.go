@@ -19,7 +19,7 @@ func NewDateValidation() *DateValidationMiddleware {
 }
 
 func (m *DateValidationMiddleware) Handle(ctx *gin.Context) {
-	date := strings.TrimSpace(strings.TrimPrefix(ctx.Param("date"), "/"))
+	date := strings.TrimSpace(ctx.Query("date"))
 	if date == "" {
 		ctx.Next()
 		return

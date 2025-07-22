@@ -38,7 +38,7 @@ func (r *RateHandler) Handle(ctx *gin.Context) {
 	symbol := entity.Symbol(ctx.Param("pair"))
 
 	date := time.Now()
-	if d := strings.TrimPrefix(ctx.Param("date"), "/"); d != "" {
+	if d := strings.TrimSpace(ctx.Query("date")); d != "" {
 		date, _ = time.Parse(entity.DefaultFormat, d)
 	}
 

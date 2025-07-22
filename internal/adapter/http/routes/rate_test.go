@@ -102,11 +102,9 @@ func TestRateHandler_Handle(t *testing.T) {
 					Provider: "test",
 				}
 
-				dt := time.Date(2021, 4, 15, 11, 42, 31, 0, time.UTC).
-					Format(entity.DefaultFormat)
 				ts := time.Date(2021, 4, 15, 11, 40, 0, 0, time.UTC)
 				service.On("Historical", mock.Anything, rate.Pair, ts).Once().Return(&rate, nil)
-				m.On("Observe", "/rate/BTC_USD/"+dt, mock.Anything).Once().Return()
+				m.On("Observe", "/rate/BTC_USD", mock.Anything).Once().Return()
 
 				uc := usecase.NewRateUseCase(usecase.RateUseCaseDeps{
 					Cache:   cache,
@@ -127,15 +125,14 @@ func TestRateHandler_Handle(t *testing.T) {
 			})
 
 			router := http2.NewRouter()
+			router.GET("/rate/:pair", handler.Handle)
 
 			w := httptest.NewRecorder()
 			var req *http.Request
 			if test.ts.IsZero() {
-				router.GET("/rate/:pair", handler.Handle)
-				req, _ = http.NewRequest(http.MethodGet, fmt.Sprint("/rate/", "BTC_USD"), nil)
+				req, _ = http.NewRequest(http.MethodGet, "/rate/BTC_USD", nil)
 			} else {
-				router.GET("/rate/:pair/*date", handler.Handle)
-				req, _ = http.NewRequest(http.MethodGet, fmt.Sprint("/rate/BTC_USD/", test.ts.Format(entity.DefaultFormat)), nil)
+				req, _ = http.NewRequest(http.MethodGet, fmt.Sprint("/rate/BTC_USD?date=", test.ts.Format(entity.DefaultFormat)), nil)
 			}
 
 			router.ServeHTTP(w, req)

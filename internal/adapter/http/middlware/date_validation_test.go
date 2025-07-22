@@ -64,14 +64,14 @@ func TestDateValidationMiddleware_Handle(t *testing.T) {
 			dateValidationMiddleware := middlware.NewDateValidation()
 			// Add middleware and a test handler
 			handlerCalled := false
-			router.GET("/test/*date", dateValidationMiddleware.Handle, func(c *gin.Context) {
+			router.GET("/test", dateValidationMiddleware.Handle, func(c *gin.Context) {
 				handlerCalled = true
 				c.Status(http.StatusOK)
 			})
 
 			// Create request
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest(http.MethodGet, "/test/"+tt.dateParam, nil)
+			req := httptest.NewRequest(http.MethodGet, "/test?date="+tt.dateParam, nil)
 
 			// Execute
 			router.ServeHTTP(w, req)
@@ -117,7 +117,7 @@ func TestDateValidationMiddleware_Handle_FutureDateTime(t *testing.T) {
 
 	handlerCalled := false
 	router.Use(middlware.NewDateValidation().Handle)
-	router.GET("/test/:date", func(c *gin.Context) {
+	router.GET("/test", func(c *gin.Context) {
 		handlerCalled = true
 		c.Status(http.StatusOK)
 	})
@@ -126,7 +126,7 @@ func TestDateValidationMiddleware_Handle_FutureDateTime(t *testing.T) {
 	futureDate := time.Now().Add(24 * time.Hour).Format(entity.DefaultFormat)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/test/"+futureDate, nil)
+	req := httptest.NewRequest(http.MethodGet, "/test?date="+futureDate, nil)
 	router.ServeHTTP(w, req)
 
 	assert.False(t, handlerCalled, "Handler should not be called for future dates")
@@ -164,14 +164,14 @@ func TestDateValidationMiddleware_Handle_ParseError(t *testing.T) {
 
 	handlerCalled := false
 	router.Use(middlware.NewDateValidation().Handle)
-	router.GET("/test/:date", func(c *gin.Context) {
+	router.GET("/test", func(c *gin.Context) {
 		handlerCalled = true
 		c.Status(http.StatusOK)
 	})
 
 	invalidDate := "not-a-date"
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/test/"+invalidDate, nil)
+	req := httptest.NewRequest(http.MethodGet, "/test?date="+invalidDate, nil)
 	router.ServeHTTP(w, req)
 
 	assert.False(t, handlerCalled, "Handler should not be called for invalid dates")
@@ -208,13 +208,13 @@ func TestDateValidationMiddleware_ResponseStructure(t *testing.T) {
 	router := gin.New()
 
 	router.Use(middlware.NewDateValidation().Handle)
-	router.GET("/test/:date", func(c *gin.Context) {
+	router.GET("/test", func(c *gin.Context) {
 		c.Status(http.StatusOK)
 	})
 
 	// Test with invalid date to trigger validation error
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/test/invalid-date", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test?date=invalid-date", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
