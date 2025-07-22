@@ -43,7 +43,7 @@ func TestGetSecret(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				result, err := docker.GetSecret(tt.input)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expected, result)
 			})
 		}
@@ -99,7 +99,7 @@ func TestGetSecret(t *testing.T) {
 
 				// Test reading the file
 				result, err := docker.GetSecret(filePath)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expectedRead, result)
 
 				// Clean up
@@ -112,7 +112,7 @@ func TestGetSecret(t *testing.T) {
 		nonExistentPath := "/tmp/non-existent-secret-file-12345"
 
 		result, err := docker.GetSecret(nonExistentPath)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, result)
 
 		// Check that the error is wrapped with eris
@@ -142,7 +142,7 @@ func TestGetSecret(t *testing.T) {
 		defer os.Chmod(filePath, 0644)
 
 		result, err := docker.GetSecret(filePath)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, result)
 		assert.Contains(t, err.Error(), "failed to open secret file")
 	})
@@ -151,7 +151,7 @@ func TestGetSecret(t *testing.T) {
 		tempDir := t.TempDir()
 
 		result, err := docker.GetSecret(tempDir)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Empty(t, result)
 		assert.Contains(t, err.Error(), "failed to open secret file")
 	})

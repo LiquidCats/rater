@@ -43,7 +43,7 @@ func (t *CollectRateTask) Run() {
 	t.logger.Info().Msg("start collect rate task")
 	defer t.logger.Info().Msg("end collect rate task")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute) //nolint:mnd
 	defer cancel()
 
 	pairs, err := t.pairDB.GetAllPairs(ctx)
@@ -55,7 +55,7 @@ func (t *CollectRateTask) Run() {
 	}
 
 	for _, pair := range pairs {
-		if err := t.useCase.CollectRate(ctx, entity.Symbol(pair.Symbol)); err != nil {
+		if err = t.useCase.CollectRate(ctx, entity.Symbol(pair.Symbol)); err != nil {
 			t.logger.Error().
 				Any("err", eris.ToJSON(err, true)).
 				Str("symbol", pair.Symbol).

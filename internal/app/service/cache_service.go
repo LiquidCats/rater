@@ -28,7 +28,7 @@ func (s *CacheService) GetRate(ctx context.Context, pair entity.Pair) (*entity.R
 		return nil, eris.Wrap(err, "get rate from cache")
 	}
 	if r.Price.IsZero() && r.Provider == "" && r.From == "" && r.To == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 
 	from := entity.CurrencyISO(r.From).ToUpper()

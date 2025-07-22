@@ -273,7 +273,7 @@ func BenchmarkRoundToNearest(b *testing.B) {
 	testTime := time.Now()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = timeutils.RoundToNearest(testTime, timeutils.FiveMinuteBucket)
 	}
 }

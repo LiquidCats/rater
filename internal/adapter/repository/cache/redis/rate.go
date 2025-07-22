@@ -41,7 +41,7 @@ func (c *Repository) PutRate(ctx context.Context, key RateKey, value Rate) error
 		Ctx:   ctx,
 		Key:   c.key(key),
 		Value: value,
-		TTL:   5 * time.Second,
+		TTL:   5 * time.Second, //nolint:mnd
 	})
 	if err != nil {
 		return eris.Wrap(err, "put value to cache")

@@ -72,5 +72,5 @@ func TestRepository_PutRate(t *testing.T) {
 
 	res, err := srv.Get("rater:rate:from:btc:to:usd")
 	require.NoError(t, err)
-	require.Equal(t, `{"from":"BTC","to":"USD","price":"112011.34","provider":"testprovider2"}`, res)
+	require.JSONEq(t, `{"from":"BTC","to":"USD","price":"112011.34","provider":"testprovider2"}`, res)
 }

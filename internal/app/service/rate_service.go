@@ -131,15 +131,19 @@ func (s *RateService) Current(ctx context.Context, pair entity.Pair) (*entity.Ra
 		Any("rate", rate).
 		Msg("get historical rate")
 
-	if hasRate, err := s.rateDB.HasRate(ctx, postgres.HasRateParams{
+	hasRate, err := s.rateDB.HasRate(ctx, postgres.HasRateParams{
 		Ts: pgtype.Timestamp{
 			Time:  timeutils.RoundToNearest(start, timeutils.FiveMinuteBucket),
 			Valid: true,
 		},
 		Pair: rate.Provider.String(),
-	}); err == nil && hasRate {
+	})
+
+	if err == nil && hasRate {
 		return rate, provider, nil
-	} else if err != nil {
+	}
+
+	if err != nil {
 		logger.Warn().
 			Any("err", eris.ToJSON(err, true)).
 			Msg("cant check rate in database")

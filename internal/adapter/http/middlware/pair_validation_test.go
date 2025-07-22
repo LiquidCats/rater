@@ -26,7 +26,7 @@ func TestPairValidationMiddleware_Handle(t *testing.T) {
 			name: "empty",
 			pair: " ",
 			msg:  "empty pair",
-			mock: func(t *testing.T, symbol entity.Symbol) repository.PairDatabase {
+			mock: func(t *testing.T, _ entity.Symbol) repository.PairDatabase {
 				pairDB := mocks.NewPairDatabase(t)
 				pairDB.On("CountPairs", mock.Anything).Once().Return(int64(1), nil)
 
@@ -36,7 +36,7 @@ func TestPairValidationMiddleware_Handle(t *testing.T) {
 		{
 			name: "short",
 			pair: "BTC_US",
-			mock: func(t *testing.T, symbol entity.Symbol) repository.PairDatabase {
+			mock: func(t *testing.T, _ entity.Symbol) repository.PairDatabase {
 				pairDB := mocks.NewPairDatabase(t)
 				pairDB.On("CountPairs", mock.Anything).Once().Return(int64(1), nil)
 
@@ -48,7 +48,7 @@ func TestPairValidationMiddleware_Handle(t *testing.T) {
 			name: "lower",
 			pair: "btc_usd",
 			msg:  "should be uppercase",
-			mock: func(t *testing.T, symbol entity.Symbol) repository.PairDatabase {
+			mock: func(t *testing.T, _ entity.Symbol) repository.PairDatabase {
 				pairDB := mocks.NewPairDatabase(t)
 				pairDB.On("CountPairs", mock.Anything).Once().Return(int64(1), nil)
 

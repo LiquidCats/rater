@@ -28,14 +28,10 @@ func New(cfg configs.RedisConfig) *Repository {
 		baseKey: configs.AppName,
 		client: cache.New(&cache.Options{
 			Redis:      client,
-			LocalCache: cache.NewTinyLFU(10, time.Second*5),
+			LocalCache: cache.NewTinyLFU(10, time.Second*5), //nolint:mnd
 
-			Marshal: func(i interface{}) ([]byte, error) {
-				return sonic.Marshal(i)
-			},
-			Unmarshal: func(b []byte, i interface{}) error {
-				return sonic.Unmarshal(b, i)
-			},
+			Marshal:   sonic.Marshal,
+			Unmarshal: sonic.Unmarshal,
 		}),
 	}
 }

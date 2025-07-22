@@ -71,7 +71,7 @@ func TestDateValidationMiddleware_Handle(t *testing.T) {
 
 			// Create request
 			w := httptest.NewRecorder()
-			req := httptest.NewRequest("GET", "/test/"+tt.dateParam, nil)
+			req := httptest.NewRequest(http.MethodGet, "/test/"+tt.dateParam, nil)
 
 			// Execute
 			router.ServeHTTP(w, req)
@@ -126,7 +126,7 @@ func TestDateValidationMiddleware_Handle_FutureDateTime(t *testing.T) {
 	futureDate := time.Now().Add(24 * time.Hour).Format(entity.DefaultFormat)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/test/"+futureDate, nil)
+	req := httptest.NewRequest(http.MethodGet, "/test/"+futureDate, nil)
 	router.ServeHTTP(w, req)
 
 	assert.False(t, handlerCalled, "Handler should not be called for future dates")
@@ -149,7 +149,7 @@ func TestDateValidationMiddleware_Handle_FutureDateTime(t *testing.T) {
 	// Check that one of the error messages contains "must be in the past"
 	foundMessage := false
 	for _, errMsg := range dateErrors {
-		if str, ok := errMsg.(string); ok && strings.Contains(str, "must be in the past") {
+		if str, errOk := errMsg.(string); errOk && strings.Contains(str, "must be in the past") {
 			foundMessage = true
 			break
 		}
@@ -171,7 +171,7 @@ func TestDateValidationMiddleware_Handle_ParseError(t *testing.T) {
 
 	invalidDate := "not-a-date"
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/test/"+invalidDate, nil)
+	req := httptest.NewRequest(http.MethodGet, "/test/"+invalidDate, nil)
 	router.ServeHTTP(w, req)
 
 	assert.False(t, handlerCalled, "Handler should not be called for invalid dates")
@@ -194,7 +194,7 @@ func TestDateValidationMiddleware_Handle_ParseError(t *testing.T) {
 	// Check that one of the error messages contains format information
 	foundFormatMessage := false
 	for _, errMsg := range dateErrors {
-		if str, ok := errMsg.(string); ok && strings.Contains(str, "datetime must be in format:") {
+		if str, errOk := errMsg.(string); errOk && strings.Contains(str, "datetime must be in format:") {
 			foundFormatMessage = true
 			break
 		}
@@ -214,7 +214,7 @@ func TestDateValidationMiddleware_ResponseStructure(t *testing.T) {
 
 	// Test with invalid date to trigger validation error
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/test/invalid-date", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test/invalid-date", nil)
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusUnprocessableEntity, w.Code)
@@ -240,7 +240,7 @@ func TestDateValidationMiddleware_ResponseStructure(t *testing.T) {
 
 	// Verify all error messages are strings
 	for i, errMsg := range dateErrors {
-		_, ok := errMsg.(string)
-		assert.True(t, ok, "Error message at index %d should be a string", i)
+		_, errOk := errMsg.(string)
+		assert.True(t, errOk, "Error message at index %d should be a string", i)
 	}
 }

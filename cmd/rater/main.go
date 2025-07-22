@@ -23,7 +23,7 @@ import (
 	_ "go.uber.org/automaxprocs"
 )
 
-func main() {
+func main() { //nolint:funlen
 	logger := zerolog.New(os.Stdout).With().Caller().Stack().Timestamp().Logger()
 	zerolog.DefaultContextLogger = &logger // nolint:reassign
 
