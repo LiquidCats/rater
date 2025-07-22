@@ -32,6 +32,9 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v4
 
+    - uses: docker/setup-qemu-action@v3
+    - uses: docker/setup-buildx-action@v3
+
     - name: Lowercase Repository Name
       id: repository
       uses: Entepotenz/change-string-case-action-min-dependencies@v1
@@ -49,6 +52,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       uses: docker/build-push-action@v6
       with:
+        platforms: linux/amd64,linux/arm64,linux/arm64/v8
         context: .
         file: ./Dockerfile
         push: true
@@ -60,6 +64,7 @@ jobs:
       if: startsWith(github.ref, 'refs/heads/main')
       uses: docker/build-push-action@v6
       with:
+        platforms: linux/amd64,linux/arm64,linux/arm64/v8
         context: .
         file: ./Dockerfile
         push: true
