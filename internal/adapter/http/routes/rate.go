@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/LiquidCats/rater/internal/adapter/http/dto"
@@ -15,7 +16,7 @@ import (
 )
 
 type RateHandler struct {
-	usecase *usecase.RateUsecase
+	usecase *usecase.RateUseCase
 	metrics Metrics
 }
 
@@ -23,7 +24,7 @@ type Metrics struct {
 	ResponseTime metrics.ResponseTimeMetric
 }
 
-func NewRateHandler(usecase *usecase.RateUsecase, metrics Metrics) *RateHandler {
+func NewRateHandler(usecase *usecase.RateUseCase, metrics Metrics) *RateHandler {
 	return &RateHandler{
 		usecase: usecase,
 		metrics: metrics,
@@ -34,21 +35,23 @@ func (r *RateHandler) Handle(ctx *gin.Context) {
 	start := time.Now()
 	defer r.metrics.ResponseTime.Observe(ctx.Request.URL.Path, start)
 
-	pairStr := entity.CurrencyPairString(ctx.Param("pair"))
+	symbol := entity.Symbol(ctx.Param("pair"))
 
-	logger := zerolog.Ctx(ctx.Request.Context()).With().Any("pair", pairStr).Logger()
-
-	pair, err := pairStr.ToPair()
-	if err != nil {
-		logger.Error().Any("err", eris.ToJSON(err, true)).Msg("invalid pair")
-
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.NewErrorResponse(err))
-		return
+	date := time.Now()
+	if d := strings.TrimPrefix(ctx.Param("date"), "/"); d != "" {
+		date, _ = time.Parse(entity.DefaultFormat, d)
 	}
 
-	rate, err := r.usecase.GetRate(ctx, pair)
+	logger := zerolog.Ctx(ctx.Request.Context()).
+		With().
+		Any("symbol", symbol).
+		Logger()
+
+	rate, err := r.usecase.GetRate(ctx, symbol, date)
 	if err != nil {
-		logger.Error().Any("err", eris.ToJSON(err, true)).Msg("invalid rate")
+		logger.Error().
+			Any("err", eris.ToJSON(err, true)).
+			Msg("invalid rate")
 
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, dto.NewErrorResponse(err))
 		return

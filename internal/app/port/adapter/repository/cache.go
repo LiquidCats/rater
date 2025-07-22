@@ -2,12 +2,11 @@ package repository
 
 import (
 	"context"
-	"time"
 
-	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/LiquidCats/rater/internal/adapter/repository/cache/redis"
 )
 
 type RateCache interface {
-	GetRate(ctx context.Context, pair entity.Pair) (*entity.Rate, error)
-	PutRate(ctx context.Context, rate entity.Rate, expire time.Duration) error
+	GetRate(ctx context.Context, key redis.RateKey) (redis.Rate, error)
+	PutRate(ctx context.Context, key redis.RateKey, value redis.Rate) error
 }

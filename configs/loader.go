@@ -4,10 +4,10 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-func Load(prefix string) (Config, error) {
+func Load() (Config, error) {
 	var cfg Config
 
-	if err := envconfig.Process(prefix, &cfg); err != nil {
+	if err := envconfig.Process(AppName, &cfg); err != nil {
 		return cfg, err
 	}
 

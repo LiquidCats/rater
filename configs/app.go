@@ -1,12 +1,13 @@
 package configs
 
 import (
-	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/rs/zerolog"
 )
+
+const AppName = "rater"
 
 type AppConfig struct {
 	LogLevel zerolog.Level `envconfig:"LOG_LEVEL" default:"info"`
 
-	Pairs []entity.CurrencyPairString
+	CollectSchedule string `envconfig:"COLLECT_SCHEDULE" default:"*/5 * * * *"`
 }

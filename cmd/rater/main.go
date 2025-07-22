@@ -10,24 +10,20 @@ import (
 	"github.com/LiquidCats/rater/internal/adapter/http/middlware"
 	"github.com/LiquidCats/rater/internal/adapter/http/routes"
 	"github.com/LiquidCats/rater/internal/adapter/metrics/prometheus"
-	"github.com/LiquidCats/rater/internal/adapter/repository/api"
-	"github.com/LiquidCats/rater/internal/adapter/repository/api/cex"
-	"github.com/LiquidCats/rater/internal/adapter/repository/api/coinapi"
-	"github.com/LiquidCats/rater/internal/adapter/repository/api/coingate"
-	"github.com/LiquidCats/rater/internal/adapter/repository/api/coingecko"
-	"github.com/LiquidCats/rater/internal/adapter/repository/api/coinmarketcap"
 	"github.com/LiquidCats/rater/internal/adapter/repository/cache/redis"
-	"github.com/LiquidCats/rater/internal/app/domain/entity"
+	"github.com/LiquidCats/rater/internal/adapter/repository/database/postgres"
+	"github.com/LiquidCats/rater/internal/adapter/scheduler/cron"
+	"github.com/LiquidCats/rater/internal/app/bootstrap"
+	"github.com/LiquidCats/rater/internal/app/service"
 	"github.com/LiquidCats/rater/internal/app/usecase"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
 
 	_ "go.uber.org/automaxprocs"
 )
 
-const app = "rater"
-
-func main() {
+func main() { //nolint:funlen
 	logger := zerolog.New(os.Stdout).With().Caller().Stack().Timestamp().Logger()
 	zerolog.DefaultContextLogger = &logger // nolint:reassign
 
@@ -36,7 +32,7 @@ func main() {
 
 	ctx = logger.WithContext(ctx)
 
-	cfg, err := configs.Load(app)
+	cfg, err := configs.Load()
 	if err != nil {
 		logger.Fatal().
 			Any("err", eris.ToJSON(err, true)).
@@ -45,35 +41,65 @@ func main() {
 
 	zerolog.SetGlobalLevel(cfg.App.LogLevel)
 
-	cache, err := redis.NewCacheRepository(cfg.Redis, app)
-	if nil != err {
+	poolConfig, err := pgxpool.ParseConfig(cfg.DB.ToDSN())
+	if err != nil {
 		logger.Fatal().
 			Any("err", eris.ToJSON(err, true)).
-			Msg("app: cant connect to cache")
+			Msg("parse db config")
+	}
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		logger.Fatal().
+			Any("err", eris.ToJSON(err, true)).
+			Msg("database config")
+	}
+	defer pool.Close()
+	if err != nil {
+		logger.Fatal().
+			Any("err", eris.ToJSON(err, true)).
+			Msg("connect to database")
 	}
 
-	apiRegistry := api.Registry{}
-	apiRegistry.Register(entity.ProviderNameCex, cex.NewRepository(cfg.Cex))
-	apiRegistry.Register(entity.ProviderNameCoinApi, coinapi.NewRepository(cfg.CoinApi))
-	apiRegistry.Register(entity.ProviderNameCoinGate, coingate.NewRepository(cfg.CoinGate))
-	apiRegistry.Register(entity.ProviderNameCoinGecko, coingecko.NewRepository(cfg.CoinGecko))
-	apiRegistry.Register(entity.ProviderNameCoinMarketCap, coinmarketcap.NewReposiotry(cfg.CoinMarketCap))
+	migrationConn, err := pool.Acquire(ctx)
+	if err != nil {
+		logger.Fatal().
+			Any("err", eris.ToJSON(err, true)).
+			Msg("acquire pool connection")
+	}
 
-	providerErrRateMetric := prometheus.NewProviderErrRate(app)
-	responseTimeMetric := prometheus.NewResponseTime(app)
+	if err = postgres.Migrate(migrationConn.Conn()); err != nil {
+		logger.Fatal().
+			Any("err", eris.ToJSON(err, true)).
+			Msg("migrate")
+	}
 
-	rateUsecase := usecase.NewRateUsecase(
-		cache,
-		apiRegistry,
-		usecase.RateUsecaseMetrics{
-			ProviderErrRate: providerErrRateMetric,
-		},
-	)
+	cache := redis.New(cfg.Redis)
+	db := postgres.New(pool)
+
+	apiRegistry, err := bootstrap.NewRegistry(ctx, cfg, db)
+	if err != nil {
+		logger.Fatal().
+			Any("err", eris.ToJSON(err, true)).
+			Msg("failed to create registry")
+	}
+	providerErrRateMetric := prometheus.NewProviderErrRate()
+	responseTimeMetric := prometheus.NewResponseTime()
+
+	cacheService := service.NewCacheService(cache)
+	rateService := service.NewRateService(apiRegistry, db, providerErrRateMetric)
+
+	rateUseCase := usecase.NewRateUseCase(usecase.RateUseCaseDeps{
+		Cache:   cacheService,
+		Service: rateService,
+	})
+
+	collectRateTask := cron.NewCollectRateTask(&logger, cfg.App, db, rateUseCase)
 
 	rootHandler := routes.NewRootHandler()
-	rateHandler := routes.NewRateHandler(rateUsecase, routes.Metrics{ResponseTime: responseTimeMetric})
+	rateHandler := routes.NewRateHandler(rateUseCase, routes.Metrics{ResponseTime: responseTimeMetric})
 
-	baseCurrencyMiddleware := middlware.NewPairValidation(cfg.App.Pairs)
+	pairValidationMiddleware := middlware.NewPairValidation(db)
+	dateValidationMiddleware := middlware.NewDateValidation()
 
 	router := http.NewRouter()
 
@@ -82,13 +108,17 @@ func main() {
 	v1Router := router.Group("/v1")
 	v1Router.GET("/", rootHandler.Handle)
 	v1Router.GET(
-		"/rate/:pair",
-		baseCurrencyMiddleware.Handle,
+		"/rate/:pair/*date",
+		pairValidationMiddleware.Handle,
+		dateValidationMiddleware.Handle,
 		rateHandler.Handle,
 	)
 
 	runners := []graceful.Runner{
 		graceful.Signals,
+		graceful.ScheduleRunner(
+			collectRateTask,
+		),
 		graceful.ServerRunner(router, cfg.HTTP),
 		graceful.ServerRunner(prometheus.GinHandler(), cfg.Metrics),
 	}

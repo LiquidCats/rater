@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/LiquidCats/rater/configs"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -13,9 +14,9 @@ type ProviderErrRate struct {
 	*prometheus.CounterVec
 }
 
-func NewProviderErrRate(namespace string) *ProviderErrRate {
+func NewProviderErrRate() *ProviderErrRate {
 	counterVec := promauto.NewCounterVec(prometheus.CounterOpts{
-		Namespace: namespace,
+		Namespace: configs.AppName,
 		Name:      "provider_err_rate",
 	}, []string{"code", "provider"})
 
@@ -32,9 +33,9 @@ type ResponseTime struct {
 	*prometheus.HistogramVec
 }
 
-func NewResponseTime(namespace string) *ResponseTime {
+func NewResponseTime() *ResponseTime {
 	histogramVec := promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: namespace,
+		Namespace: configs.AppName,
 		Name:      "response_time",
 		Buckets:   []float64{0.1, 0.3, 0.5, 0.7, 1, 3, 5, 8, 13},
 	}, []string{"route"})

@@ -4,55 +4,81 @@ import (
 	"context"
 	"time"
 
-	"github.com/LiquidCats/rater/internal/adapter/repository/api"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
-	domain "github.com/LiquidCats/rater/internal/app/domain/errors"
-	"github.com/LiquidCats/rater/internal/app/port/adapter/metrics"
-	"github.com/LiquidCats/rater/internal/app/port/adapter/repository"
+	"github.com/LiquidCats/rater/internal/app/port/service"
+	"github.com/LiquidCats/rater/internal/app/utils/timeutils"
 	"github.com/rotisserie/eris"
 	"github.com/rs/zerolog"
-	"github.com/shopspring/decimal"
 )
 
-type RateUsecaseMetrics struct {
-	ProviderErrRate metrics.ProviderErrRateMetric
+type RateUseCaseDeps struct {
+	Cache   service.CacheService
+	Service service.RateService
 }
 
-type RateUsecase struct {
-	cache    repository.RateCache
-	adapters map[entity.ProviderName]repository.RateAPI
-	metrics  RateUsecaseMetrics
+type RateUseCase struct {
+	cache   service.CacheService
+	service service.RateService
 }
 
-func NewRateUsecase(
-	cache repository.RateCache,
-	providers api.Registry,
-	metrics RateUsecaseMetrics,
-) *RateUsecase {
-	return &RateUsecase{
-		cache:    cache,
-		adapters: providers,
-		metrics:  metrics,
+func NewRateUseCase(deps RateUseCaseDeps) *RateUseCase {
+	return &RateUseCase{
+		cache:   deps.Cache,
+		service: deps.Service,
 	}
 }
 
-func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Rate, error) {
-	var (
-		rate *entity.Rate
+func (e *RateUseCase) CollectRate(ctx context.Context, symbol entity.Symbol) error {
+	logger := zerolog.Ctx(ctx).
+		With().
+		Str("name", "use_case.collect_rate").
+		Any("symbol", symbol).
+		Logger()
 
-		price    decimal.Decimal
-		provider entity.ProviderName
-	)
+	rate, provider, err := e.service.Current(ctx, symbol.ToPair())
+	if err != nil {
+		logger.Error().
+			Any("err", eris.ToJSON(err, true)).
+			Any("provider", provider).
+			Msg("cant get rate")
 
+		return err
+	}
+
+	logger.Debug().
+		Any("rate_entry", rate).
+		Any("provider", provider).
+		Msg("rate saved")
+
+	return nil
+}
+
+func (e *RateUseCase) GetRate(ctx context.Context, symbol entity.Symbol, date time.Time) (*entity.Rate, error) {
 	logger := zerolog.Ctx(ctx).
 		With().
 		Str("name", "use_case.get_rate").
-		Any("pair", pair).
+		Any("symbol", symbol).
 		Logger()
 
+	pairEntity := symbol.ToPair()
 	logger.Debug().Msg("get rate")
 
-	rate, err := e.cache.GetRate(ctx, pair)
+	ts := timeutils.RoundToNearest(date, timeutils.FiveMinuteBucket)
+
+	if ts.Compare(timeutils.RoundToNearest(time.Now(), timeutils.FiveMinuteBucket)) < 0 {
+		rate, err := e.service.Historical(ctx, pairEntity, ts)
+		if err != nil {
+			logger.Error().
+				Any("err", eris.ToJSON(err, true)).
+				Msg("get historical rate")
+
+			return nil, err
+		}
+
+		return rate, nil
+	}
+
+	rate, err := e.cache.GetRate(ctx, pairEntity)
 	if err != nil {
 		logger.Error().
 			Any("err", eris.ToJSON(err, true)).
@@ -63,48 +89,15 @@ func (e *RateUsecase) GetRate(ctx context.Context, pair entity.Pair) (*entity.Ra
 		return rate, nil
 	}
 
-	for name, adapter := range e.adapters {
-		price, err = adapter.GetRate(ctx, pair)
-		provider = name
-		if err != nil {
-			var providerErr *domain.ProviderRequestFailedError
-			if eris.As(err, &providerErr) {
-				logger = logger.With().
-					Int("provider_err_code", providerErr.StatusCode).
-					Str("provider_err_body", providerErr.Body).
-					Logger()
-				e.metrics.ProviderErrRate.Inc(providerErr.StatusCode, name)
-			}
-
-			logger.Error().
-				Any("err", eris.ToJSON(err, true)).
-				Any("provider", name).
-				Msg("cant get rate")
-			continue
-		}
-
-		if !price.IsZero() {
-			break
-		}
-	}
-
-	if price.IsZero() {
-		e.metrics.ProviderErrRate.Inc(-1, provider)
-
+	rate, provider, err := e.service.Current(ctx, pairEntity)
+	if err != nil {
 		logger.Error().
 			Any("err", eris.ToJSON(err, true)).
 			Any("provider", provider).
-			Msg("rate not available")
-		return nil, domain.ErrRateNotAvailable
+			Msg("cant get rate")
 	}
 
-	rate = &entity.Rate{
-		Pair:     pair,
-		Price:    price,
-		Provider: provider,
-	}
-
-	if err = e.cache.PutRate(ctx, *rate, 5*time.Second); nil != err { // nolint:mnd
+	if err = e.cache.PutRate(ctx, *rate); nil != err {
 		logger.Error().
 			Any("err", eris.ToJSON(err, true)).
 			Any("provider", provider).

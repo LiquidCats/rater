@@ -1,6 +1,5 @@
 x-app-env: &app-env
-  RATER_APP_PAIRS: "BTC_USD,BTC_EUR,ETH_USD,ETH_EUR"
-
+  RATER_APP_LOG_LEVEL: debug
   RATER_HTTP_PORT: 8080
 
   RATER_METRICS_PORT: 9090
@@ -20,8 +19,14 @@ x-app-env: &app-env
   RATER_REDIS_ADDRESS: "cache:6379"
   RATER_REDIS_DB: 0
 
+  RATER_DB_HOST: db
+  RATER_DB_PORT: 5432
+  RATER_DB_USER: rater_db_user
+  RATER_DB_PASSWORD: rater_db_secret
+  RATER_DB_DATABASE: rater_db
+
 services:
-  dev:
+  rater:
     build:
       dockerfile: Dockerfile.dev
       context: .
@@ -34,13 +39,35 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
+      - godeps:/go
+    depends_on:
+      - cache
+      - db
 
   cache:
-    image: redis:alpine
+    image: redis:8-alpine
     networks:
       - rater
     ports:
       - "6379:6379"
 
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: rater_db_user
+      POSTGRES_PASSWORD: rater_db_secret
+      POSTGRES_DB: rater_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rater
+    ports:
+      - "5432:5432"
+
 networks:
   rater:
+
+volumes:
+  postgres_data:
+  godeps:
+    external: true

@@ -28,12 +28,12 @@ func TestGetSecretFromFile(t *testing.T) {
 
 		secret, err := cfg.GetSecret()
 		require.NoError(t, err)
-		assert.Equal(t, sensitive.String(content), secret)
+		assert.Equal(t, content, string(secret))
 	})
 
 	t.Run("file does not exist", func(t *testing.T) {
 		cfg := configs.CoinMarketCapConfig{
-			SecretFile: "nonexistent.file",
+			SecretFile: t.TempDir() + "/nonexistent.file",
 		}
 
 		secret, err := cfg.GetSecret()

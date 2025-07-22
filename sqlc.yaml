@@ -1,0 +1,17 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "internal/adapter/repository/database/postgres/queries"
+    schema: "internal/adapter/repository/database/postgres/migrations"
+    gen:
+      go:
+        package: "postgres"
+        out: "internal/adapter/repository/database/postgres"
+        sql_package: "pgx/v5"
+        overrides:
+          - db_type: "pg_catalog.numeric"   # see note below re Postgres
+            go_type: "github.com/shopspring/decimal.Decimal"
+          # Optional: handle nullable numeric
+          - db_type: "pg_catalog.numeric"
+            nullable: true
+            go_type: "github.com/shopspring/decimal.NullDecimal"
