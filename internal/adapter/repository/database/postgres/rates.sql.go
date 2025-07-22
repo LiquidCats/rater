@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
 )
 
 const getRate = `-- name: GetRate :one
@@ -55,7 +56,7 @@ insert into rates(price, pair, provider, ts) values ($1, $2, $3, $4) returning i
 `
 
 type SaveRateParams struct {
-	Price    pgtype.Numeric
+	Price    decimal.Decimal
 	Pair     string
 	Provider string
 	Ts       pgtype.Timestamp

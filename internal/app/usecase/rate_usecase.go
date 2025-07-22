@@ -31,7 +31,7 @@ func NewRateUseCase(deps RateUseCaseDeps) *RateUseCase {
 func (e *RateUseCase) CollectRate(ctx context.Context, symbol entity.Symbol) error {
 	logger := zerolog.Ctx(ctx).
 		With().
-		Str("name", "use_case.get_rate").
+		Str("name", "use_case.collect_rate").
 		Any("symbol", symbol).
 		Logger()
 

@@ -14,7 +14,7 @@ type Rate struct {
 func NewRate(rate postgres.Rate) Rate {
 	return Rate{
 		Pair:     Symbol(rate.Pair).ToPair(),
-		Price:    decimal.NewFromBigInt(rate.Price.Int, rate.Price.Exp),
+		Price:    rate.Price,
 		Provider: ProviderName(rate.Provider),
 	}
 }

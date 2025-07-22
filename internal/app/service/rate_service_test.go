@@ -38,11 +38,7 @@ func TestRateService_Current(t *testing.T) {
 		Pair: "testprovider",
 	}).Once().Return(false, nil)
 	rateDB.On("SaveRate", ctx, postgres.SaveRateParams{
-		Price: pgtype.Numeric{
-			Int:   price.Coefficient(),
-			Exp:   price.Exponent(),
-			Valid: true,
-		},
+		Price:    price,
 		Pair:     pair.Symbol.String(),
 		Provider: "testprovider",
 		Ts: pgtype.Timestamp{
@@ -50,12 +46,8 @@ func TestRateService_Current(t *testing.T) {
 			Valid: true,
 		},
 	}).Once().Return(postgres.Rate{
-		ID: 12,
-		Price: pgtype.Numeric{
-			Int:   price.Coefficient(),
-			Exp:   price.Exponent(),
-			Valid: true,
-		},
+		ID:       12,
+		Price:    price,
 		Pair:     pair.Symbol.String(),
 		Provider: "testprovider",
 		Ts: pgtype.Timestamp{
@@ -96,12 +88,8 @@ func TestRateService_Historical(t *testing.T) {
 		},
 		Pair: pair.Symbol.String(),
 	}).Once().Return(postgres.Rate{
-		ID: 12,
-		Price: pgtype.Numeric{
-			Int:   price.Coefficient(),
-			Exp:   price.Exponent(),
-			Valid: true,
-		},
+		ID:       12,
+		Price:    price,
 		Pair:     pair.Symbol.String(),
 		Provider: "testprovider",
 		Ts: pgtype.Timestamp{

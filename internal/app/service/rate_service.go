@@ -37,6 +37,12 @@ func NewRateService(
 }
 
 func (s *RateService) Historical(ctx context.Context, pair entity.Pair, ts time.Time) (*entity.Rate, error) {
+	logger := zerolog.Ctx(ctx).
+		With().
+		Str("name", "service.rate.historical").
+		Any("pair", pair).
+		Logger()
+
 	historical, err := s.rateDB.GetRate(ctx, postgres.GetRateParams{
 		Ts: pgtype.Timestamp{
 			Time:  ts,
@@ -46,9 +52,20 @@ func (s *RateService) Historical(ctx context.Context, pair entity.Pair, ts time.
 	})
 	if err != nil {
 		if eris.Is(err, sql.ErrNoRows) {
+			logger.Error().
+				Any("err", eris.ToJSON(err, true)).
+				Msg("no historical rate found")
 			return nil, domain.ErrNoHistoricalRate
 		}
+		logger.Error().
+			Any("err", eris.ToJSON(err, true)).
+			Msg("get historical rate")
+		return nil, eris.Wrap(err, "cant get rate from database")
 	}
+
+	logger.Debug().
+		Any("rate", historical).
+		Msg("get historical rate")
 
 	rate := entity.NewRate(historical)
 
@@ -65,7 +82,7 @@ func (s *RateService) Current(ctx context.Context, pair entity.Pair) (*entity.Ra
 
 	logger := zerolog.Ctx(ctx).
 		With().
-		Str("name", "use_case.fetchRate").
+		Str("name", "service.rate.current").
 		Any("pair", pair).
 		Logger()
 
@@ -110,6 +127,10 @@ func (s *RateService) Current(ctx context.Context, pair entity.Pair) (*entity.Ra
 		Provider: provider,
 	}
 
+	logger.Debug().
+		Any("rate", rate).
+		Msg("get historical rate")
+
 	if hasRate, err := s.rateDB.HasRate(ctx, postgres.HasRateParams{
 		Ts: pgtype.Timestamp{
 			Time:  timeutils.RoundToNearest(start, timeutils.FiveMinuteBucket),
@@ -126,11 +147,7 @@ func (s *RateService) Current(ctx context.Context, pair entity.Pair) (*entity.Ra
 	}
 
 	_, err = s.rateDB.SaveRate(ctx, postgres.SaveRateParams{
-		Price: pgtype.Numeric{
-			Int:   rate.Price.Coefficient(),
-			Exp:   rate.Price.Exponent(),
-			Valid: true,
-		},
+		Price:    rate.Price,
 		Pair:     rate.Pair.Symbol.String(),
 		Provider: rate.Provider.String(),
 		Ts: pgtype.Timestamp{
@@ -140,8 +157,10 @@ func (s *RateService) Current(ctx context.Context, pair entity.Pair) (*entity.Ra
 	})
 
 	if err != nil {
-		logger.Warn().
+		logger.Error().
 			Any("err", eris.ToJSON(err, true)).
+			Any("provider", provider).
+			Any("rate", rate).
 			Msg("cant save rate to database")
 	}
 

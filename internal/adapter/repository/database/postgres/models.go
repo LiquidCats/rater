@@ -6,6 +6,7 @@ package postgres
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
 )
 
 type Pair struct {
@@ -15,16 +16,6 @@ type Pair struct {
 	CreatedAt  pgtype.Timestamp
 }
 
-type Price5mOhlc struct {
-	Bucket  interface{}
-	Pair    string
-	Open    interface{}
-	High    interface{}
-	Low     interface{}
-	Close   interface{}
-	Samples int64
-}
-
 type Provider struct {
 	Name      string
 	CreatedAt pgtype.Timestamp
@@ -32,7 +23,7 @@ type Provider struct {
 
 type Rate struct {
 	ID        int32
-	Price     pgtype.Numeric
+	Price     decimal.Decimal
 	Pair      string
 	Provider  string
 	Ts        pgtype.Timestamp
