@@ -15,5 +15,5 @@ func NewRootHandler() *RootHandler {
 }
 
 func (r *RootHandler) Handle(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, dto.NewRootResponse("v1"))
+	ctx.JSON(http.StatusOK, dto.NewRootResponse("/api/v1"))
 }
