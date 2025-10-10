@@ -103,9 +103,10 @@ func main() { //nolint:funlen
 
 	router := http.NewRouter()
 
+	router.Any("/", rootHandler.Handle)
 	router.Any("/api", rootHandler.Handle)
 
-	v1Router := router.Group("/v1")
+	v1Router := router.Group("/api/v1")
 	v1Router.GET("/", rootHandler.Handle)
 	v1Router.GET(
 		"/rate/:pair",
