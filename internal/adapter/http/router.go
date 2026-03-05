@@ -9,8 +9,11 @@ import (
 func NewRouter() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
-	router.Use(gzip.Gzip(gzip.DefaultCompression))
-	router.Use(logger.SetLogger(logger.WithUTC(true)))
+	router.Use(
+		gin.Recovery(),
+		gzip.Gzip(gzip.DefaultCompression),
+		logger.SetLogger(logger.WithUTC(true)),
+	)
 
 	return router
 }

@@ -67,9 +67,7 @@ func (s *RateService) Historical(ctx context.Context, pair entity.Pair, ts time.
 		Any("rate", historical).
 		Msg("get historical rate")
 
-	rate := entity.NewRate(historical)
-
-	return &rate, nil
+	return new(entity.NewRate(historical)), nil
 }
 
 func (s *RateService) Current(ctx context.Context, pair entity.Pair) (*entity.Rate, entity.ProviderName, error) {

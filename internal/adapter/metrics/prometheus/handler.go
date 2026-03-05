@@ -9,7 +9,10 @@ import (
 func GinHandler() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	mux := gin.New()
-	mux.Use(logger.SetLogger(logger.WithUTC(true)))
+	mux.Use(
+		gin.Recovery(),
+		logger.SetLogger(logger.WithUTC(true)),
+	)
 
 	mux.Any("/metrics", func(c *gin.Context) {
 		promhttp.Handler().ServeHTTP(c.Writer, c.Request)

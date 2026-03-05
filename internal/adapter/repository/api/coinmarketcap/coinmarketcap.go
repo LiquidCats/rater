@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/LiquidCats/rater/configs"
 	"github.com/LiquidCats/rater/internal/adapter/repository/api/coinmarketcap/data"
@@ -26,13 +27,23 @@ func NewReposiotry(cfg configs.CoinMarketCapConfig) *Repository {
 }
 
 func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Decimal, error) {
-	url := fmt.Sprintf(
+	fullURL := fmt.Sprintf(
 		"%s?amount=1&symbol=%s&convert=%s",
 		r.cfg.URL,
 		pair.From.ToUpper(),
 		pair.To.ToUpper(),
 	)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+
+	parsedURL, err := url.ParseRequestURI(fullURL)
+	if err != nil {
+		return decimal.Zero, eris.Wrap(err, "repo: incorrect request url")
+	}
+
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+		return decimal.Zero, eris.New("repo: unsupported URL scheme")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return decimal.Zero, eris.Wrap(err, "repo: could not create request")
 	}
@@ -45,7 +56,7 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Dec
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("X-CMC_PRO_API_KEY", string(secret)) //nolint:canonicalheader
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req) //nolint:gosec
 	if err != nil {
 		return decimal.Zero, eris.Wrap(err, "repo: error making http request")
 	}

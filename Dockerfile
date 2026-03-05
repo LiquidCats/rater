@@ -1,6 +1,4 @@
-FROM golang:1.24.4-alpine AS build
-
-RUN apk update --no-cache ca-certificates
+FROM golang:1.26.0-alpine AS build
 
 WORKDIR /app
 
@@ -11,13 +9,12 @@ ENV CGO_ENABLED=0
 RUN go mod download
 RUN go build -o main ./cmd/rater/main.go
 
-FROM scratch
+FROM gcr.io/distroless/static-debian12
 
 WORKDIR /
 
 EXPOSE 8080
 
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /app/main /main
 
 CMD ["/main"]
