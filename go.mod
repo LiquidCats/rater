@@ -1,6 +1,6 @@
 module github.com/LiquidCats/rater
 
-go 1.24.4
+go 1.26.0
 
 require (
 	github.com/LiquidCats/graceful v0.0.4
