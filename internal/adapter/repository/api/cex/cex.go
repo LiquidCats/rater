@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/LiquidCats/rater/configs"
 	"github.com/LiquidCats/rater/internal/adapter/repository/api/cex/data"
@@ -31,12 +32,21 @@ func (r *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Dec
 		return decimal.Zero, eris.Wrap(err, "repo: incorrect request body")
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.cfg.URL, bytes.NewBuffer(bodyByres))
+	parsedURL, err := url.ParseRequestURI(r.cfg.URL)
+	if err != nil {
+		return decimal.Zero, eris.Wrap(err, "repo: incorrect request url")
+	}
+
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+		return decimal.Zero, eris.New("repo: unsupported URL scheme")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, parsedURL.String(), bytes.NewBuffer(bodyByres))
 	if err != nil {
 		return decimal.Zero, eris.Wrap(err, "repo: could not create request")
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req) //nolint:gosec
 	if err != nil {
 		return decimal.Zero, eris.Wrap(err, "repo: error making http request")
 	}

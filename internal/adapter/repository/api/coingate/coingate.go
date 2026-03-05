@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/LiquidCats/rater/configs"
 	"github.com/LiquidCats/rater/internal/app/domain/entity"
@@ -24,19 +25,28 @@ func NewRepository(cfg configs.CoinGateConfig) *Repository {
 }
 
 func (c *Repository) GetRate(ctx context.Context, pair entity.Pair) (decimal.Decimal, error) {
-	url := fmt.Sprintf(
+	fullURL := fmt.Sprintf(
 		"%s/%s/%s",
 		c.cfg.URL,
 		pair.From.ToLower(),
 		pair.To.ToLower(),
 	)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	parsedURL, err := url.ParseRequestURI(fullURL)
+	if err != nil {
+		return decimal.Zero, eris.Wrap(err, "repo: incorrect request url")
+	}
+
+	if parsedURL.Scheme != "https" && parsedURL.Scheme != "http" {
+		return decimal.Zero, eris.New("repo: unsupported URL scheme")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return decimal.Zero, eris.Wrap(err, "repo: could not create request")
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req) //nolint:gosec
 	if err != nil {
 		return decimal.Zero, eris.Wrap(err, "repo: error making http request")
 	}

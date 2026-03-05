@@ -12,7 +12,7 @@ type DB struct {
 	Port     string `envconfig:"PORT"`
 	Database string `envconfig:"DATABASE"`
 	User     string `envconfig:"USER"`
-	Password string `envconfig:"PASSWORD"`
+	Password string `envconfig:"PASSWORD"` //nolint:gosec
 }
 
 func (d *DB) ToDSN() string {
