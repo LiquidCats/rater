@@ -17,7 +17,6 @@ import (
 )
 
 func TestCollectRateTask_Run(t *testing.T) {
-	logger := zerolog.New(zerolog.NewTestWriter(t))
 	cfg := configs.AppConfig{
 		CollectSchedule: "",
 	}
@@ -57,7 +56,7 @@ func TestCollectRateTask_Run(t *testing.T) {
 	})
 
 	task := cron.NewCollectRateTask(
-		&logger,
+		new(zerolog.New(zerolog.NewTestWriter(t))),
 		cfg,
 		pairDB,
 		uc,
